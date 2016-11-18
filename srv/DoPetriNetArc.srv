@@ -1,9 +1,6 @@
-string place
-string transition
-string token
 string fire_guard
+string place
+string token
+string transition
 ---
-string place
-string transition
-string token
-string fire_guard
+bool guard

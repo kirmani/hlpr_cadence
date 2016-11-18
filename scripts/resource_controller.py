@@ -65,9 +65,9 @@ class ResourceController():
 resource_controller = ResourceController()
 
 def handle_do_petri_net_arc(req):
-  print "Returning: (%s, %s, %s, %s)" \
+  print "Received: (%s, %s, %s, %s)" \
       % (req.place, req.transition, req.token, req.fire_guard)
-  return (req.place, req.transition, req.token, req.fire_guard)
+  return True
 
 def main():
   rospy.init_node('do_petri_net_arc')
