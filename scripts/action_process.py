@@ -45,7 +45,7 @@ def sayThings(text, rate=RATE_DEFAULT, pitch=PITCH_DEFAULT):
 
 
 def createNet():
-	global n 
+	global n
 	n = PetriNet("Speech")
 	n.add_place(Place('queue',["act"]))
 	n.add_place(Place('started',[]))
@@ -98,6 +98,7 @@ def main():
 		ans = do_petri_net_arc("fire","requested","floor")
 	except rospy.ServiceException, e:
 		print("Service call failed: %s"%e)
+
 
 	n.transition('start').fire(n.transition("start").modes().pop())
 
