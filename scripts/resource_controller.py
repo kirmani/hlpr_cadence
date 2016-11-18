@@ -14,7 +14,7 @@ from snakes.nets import PetriNet
 from snakes.nets import Place
 from snakes.nets import Transition
 from snakes.nets import Variable
-from hlpr_cadence.srv import DoPetriNetArc
+from hlpr_cadence.srv import *
 import rospy
 
 class ResourceController():
@@ -67,7 +67,7 @@ resource_controller = ResourceController()
 def handle_do_petri_net_arc(req):
   print "Received: (%s, %s, %s, %s)" \
       % (req.place, req.transition, req.token, req.fire_guard)
-  return True
+  return DoPetriNetArcResponse(True)
 
 def main():
   rospy.init_node('do_petri_net_arc')
