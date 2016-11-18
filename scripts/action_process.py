@@ -47,7 +47,7 @@ def getAvailable():
 	rospy.Subscriber("talk",String,tryStart)
 
 def createNet():
-	global n 
+	global n
 	n = PetriNet("Speech")
 	n.add_place(Place('queue',["act"]))
 	n.add_place(Place('started',[]))
@@ -97,7 +97,7 @@ def main():
 		print("Service call failed: %s"%e)
 	#getAvailable()
 	print("change again")
-	
+
 
 main()
 

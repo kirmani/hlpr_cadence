@@ -65,9 +65,20 @@ class ResourceController():
 resource_controller = ResourceController()
 
 def handle_do_petri_net_arc(req):
-  print "Received: (%s, %s, %s, %s)" \
-      % (req.place, req.transition, req.token, req.fire_guard)
-  return DoPetriNetArcResponse(True)
+  print "Received: (%s, %s, %s)" \
+      % (req.fire_guard, req.transition, req.token)
+  if req.fire_guard == 'fire':
+    if not self.petri_net_.has_place(req.place):
+      raise rospy.ServiceException("Does not have place: %s" % req.place)
+    place = self.petri_net_.has_place(req.place)
+    place.add(req.token)
+    return DoPetriNetArcResponse(True)
+  if req.fire_guard == 'guard':
+    if not self.petri_net_.has_place(req.place):
+      raise rospy.ServiceException("Does not have place: %s" % req.place)
+    place = self.petri_net_.has_place(req.place)
+    return DoPetriNetArcResponse(req.token in place)
+  raise rospy.ServiceException("Invalid fire_guard input: %s" % req.fire_guard)
 
 def main():
   rospy.init_node('do_petri_net_arc')
