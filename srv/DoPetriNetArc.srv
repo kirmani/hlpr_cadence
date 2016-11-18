@@ -1,5 +1,5 @@
 string fire_guard
-string transition
+string place
 string token
 ---
 bool guard

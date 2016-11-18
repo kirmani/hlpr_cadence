@@ -66,7 +66,7 @@ resource_controller = ResourceController()
 
 def handle_do_petri_net_arc(req):
   print "Received: (%s, %s, %s)" \
-      % (req.fire_guard, req.transition, req.token)
+      % (req.fire_guard, req.place, req.token)
   if req.fire_guard == 'fire':
     if not self.petri_net_.has_place(req.place):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
