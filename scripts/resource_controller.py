@@ -14,6 +14,8 @@ from snakes.nets import PetriNet
 from snakes.nets import Place
 from snakes.nets import Transition
 from snakes.nets import Variable
+from hlpr_cadence.srv import *
+import rospy
 
 class ResourceController():
   def __init__(self):
@@ -69,6 +71,8 @@ def handle_do_petri_net_arc(req):
 
 def main():
   s = rospy.Service('do_petri_net_arc' DoPetriNetArc, handle_do_petri_net_arc)
+  print("Ready to do petri net arcs.")
+  rospy.spin()
 
 if __name__ == '__main__':
   main()

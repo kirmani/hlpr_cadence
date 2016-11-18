@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="hlpr_cadence" name="resource_controller" type="resource_controller.py"/>
+  <node pkg="hlpr_cadence" name="action_process" type="action_process.py"/>
+</launch>
