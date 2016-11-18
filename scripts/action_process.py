@@ -90,6 +90,7 @@ def createNet():
 def main():
 	createNet()
 	getAvailable()
+	print("change")
 	
 
 main()
