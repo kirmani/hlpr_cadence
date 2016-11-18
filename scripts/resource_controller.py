@@ -70,13 +70,13 @@ def handle_do_petri_net_arc(req):
   if req.fire_guard == 'fire':
     if not self.petri_net_.has_place(req.place):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
-    place = self.petri_net_.has_place(req.place)
+    place = self.petri_net_.place(req.place)
     place.add(req.token)
     return DoPetriNetArcResponse(True)
   if req.fire_guard == 'guard':
     if not self.petri_net_.has_place(req.place):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
-    place = self.petri_net_.has_place(req.place)
+    place = self.petri_net_.place(req.place)
     return DoPetriNetArcResponse(req.token in place)
   raise rospy.ServiceException("Invalid fire_guard input: %s" % req.fire_guard)
 
