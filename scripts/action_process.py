@@ -3,7 +3,14 @@
 from snakes.nets import *
 import rospy
 from std_msgs.msg import String
+import os
+import subprocess
+from multiprocessing import Process
 
+PITCH_MAX = 99
+RATE_MAX = 99
+PITCH_DEFAULT = PITCH_MAX/2
+RATE_DEFAULT = RATE_MAX/2
 
 class ExtendTransition(Transition):
 	actionType = 0
@@ -11,20 +18,27 @@ class ExtendTransition(Transition):
 		Transition.fire(self,binding)
 		if(self.actionType == "start"):
 			#start speech
-			getAvailable()
+			p = Process(target=sayThings,args=("Hello world, how are you doing, this is a long sentence",))
+			p.start()
 		elif(self.actionType == "hold"):
 			print("hold")
 		elif(self.actionType == "resume"):
 			print("resume")
+			os.system("killall -s CONT espeak")
 		elif(self.actionType == "pause"):
-			print("pause")
+			os.system("killall -s STOP espeak")
 		elif(self.actionType == "interrupt"):
-			print("interrupt")
-		elif(self.actionType == "finish"):
-			print("finish")
+			os.system("killall -s STOP espeak")
+
+
+def sayThings(text, rate=RATE_DEFAULT, pitch=PITCH_DEFAULT):
+	rate = 80+(370-80)*int(rate)/100
+	subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
 
 def tryStart(data):
 	print("trying")
+	if(data == "owned"):
+		n.transition('start').fire(n.transition("start").modes().pop())
 
 def getAvailable():
 	print("start")
@@ -32,9 +46,10 @@ def getAvailable():
 	rospy.Subscriber("talk",String,tryStart)
 
 def createNet():
+	global n 
 	n = PetriNet("Speech")
-	n.add_place(Place('queue',["floor"]))
-	n.add_place(Place('started',["act"]))
+	n.add_place(Place('queue',[]))
+	n.add_place(Place('started',[]))
 	n.add_place(Place('shouldPause',[]))
 	n.add_place(Place('shouldInterrupt',[]))
 	n.add_place(Place('paused',[]))
@@ -52,8 +67,8 @@ def createNet():
 	n.transition('interrupt').actionType = "interrupt"
 	n.add_transition(ExtendTransition("finish"))
 	n.transition('finish').actionType = "finish"
-	n.add_input("queue","start",Variable("floor"))
-	n.add_output("started","start",Expression("floor"))
+	n.add_input("queue","start",Variable("act"))
+	n.add_output("started","start",Expression("act"))
 	n.add_input("started","hold",Variable("act"))
 	n.add_output("shouldPause","hold",Expression("act"))
 	n.add_output("shouldInterrupt","hold",Expression("act"))
@@ -68,17 +83,18 @@ def createNet():
 	n.add_input("shouldPause","pause",Variable("act"))
 	n.add_output("paused","pause",Expression("act"))
 
-	return n
+
 
 
 
 def main():
-	n = createNet()
-	print(n.transition('start').modes())
-	n.transition('start').fire(n.transition("start").modes().pop())
+	createNet()
+	getAvailable()
+	
 
 main()
 
 #print(n.place('p').tokens)
 #print(n.get_marking())
+#print(n.transition('start').modes())
 
