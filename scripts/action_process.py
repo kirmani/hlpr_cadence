@@ -6,6 +6,7 @@ from std_msgs.msg import String
 import os
 import subprocess
 from multiprocessing import Process
+from hlpr_cadence.srv import DoPetriNetArc
 
 PITCH_MAX = 99
 RATE_MAX = 99
