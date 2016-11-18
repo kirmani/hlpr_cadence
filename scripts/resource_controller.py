@@ -20,7 +20,7 @@ class ResourceController():
     self.petri_net_ = PetriNet('resource_controller')
 
     # Global places.
-    self.petri_net_.add_place(Place('free', []))
+    self.petri_net_.add_place(Place('free', ['floor']))
     self.petri_net_.add_transition(Transition('yield'))
     self.petri_net_.add_transition(Transition('barge_in'))
 
