@@ -48,7 +48,7 @@ def getAvailable():
 def createNet():
 	global n 
 	n = PetriNet("Speech")
-	n.add_place(Place('queue',[]))
+	n.add_place(Place('queue',["act"]))
 	n.add_place(Place('started',[]))
 	n.add_place(Place('shouldPause',[]))
 	n.add_place(Place('shouldInterrupt',[]))
@@ -86,10 +86,15 @@ def createNet():
 
 
 
-
 def main():
 	createNet()
-	getAvailable()
+	rospy.wait_for_service('do_petri_net_arc')
+	try:
+		do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc',DoPetriNetArc)
+		ans = do_petri_net_arc("queue","request","floor","guard")
+	except rospy.ServiceException, e:
+		print("Service call failed: %s"%e)
+	#getAvailable()
 	print("change again")
 	
 
