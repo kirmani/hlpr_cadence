@@ -60,9 +60,15 @@ class ResourceController():
     self.petri_net_.add_output('owned_robot', 'seize_robot', Variable("floor"))
     self.petri_net_.add_output('owned_robot', 'barge_in', Variable("floor"))
 
+resource_controller = ResourceController()
+
+def handle_do_petri_net_arc(req):
+  print "Returning: (%s, %s, %s, %s)" \
+      % (req.place, req.transition, req.token, req.fire_guard)
+  return (req.place, req.transition, req.token, req.fire_guard)
 
 def main():
-  resource_controller = ResourceController()
+  s = rospy.Service('do_petri_net_arc' DoPetriNetArc, handle_do_petri_net_arc)
 
 if __name__ == '__main__':
   main()
