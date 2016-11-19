@@ -48,23 +48,23 @@ class ActionProcess:
     self.name_ = name
     self.petri_net_ = PetriNet(self.name_)
 
-    places = []
-    places.append(Place('queue',["act"]))
-    places.append(Place('started',[]))
-    places.append(Place('interrupted',[]))
-    places.append(Place('finished',[]))
+    self.places_ = []
+    self.places_.append(Place('queue',["act"]))
+    self.places_.append(Place('started',[]))
+    self.places_.append(Place('interrupted',[]))
+    self.places_.append(Place('finished',[]))
 
-    transitions = []
-    transitions.append(ExtendTransition("start"))
-    transitions.append(ExtendTransition("interrupt"))
-    transitions.append(ExtendTransition("finish"))
+    self.transitions_ = []
+    self.transitions_.append(ExtendTransition("start"))
+    self.transitions_.append(ExtendTransition("interrupt"))
+    self.transitions_.append(ExtendTransition("finish"))
 
-    for place in places:
+    for place in self.places_:
       self.petri_net_.add_place(place)
-    for transition in transitions:
+    for transition in self.transitions_:
       self.petri_net_.add_transition(transition)
 
-    self.petri_net_.add_input("queue", "start", Variable("act"))
+    self.petri_net_.add_input("queue", "start", Variable('act'))
     self.petri_net_.add_output("started", "start", Expression("act"))
     self.petri_net_.add_input("started", "interrupt", Variable("act"))
     self.petri_net_.add_input("started", "finish", Variable("act"))
@@ -79,6 +79,11 @@ class ActionProcess:
     # Place resource tokens in requested place.
     for token in action.preconditions:
       FirePetriNetArc('request_robot', token)
+
+  def Run(self):
+    while True:
+      for transition in self.transitions_:
+        pass  # TODO(kirmani): write this
 
 def FirePetriNetArc(transition, token):
   rospy.wait_for_service('do_petri_net_arc')
@@ -107,9 +112,10 @@ class Action:
 
 def main():
   action_process = ActionProcess('speech_action_process')
-
   action = Action('speech', ['floor'], {'floor': 'true'}, {'floor': 'true'})
+
   action_process.AddAction(action)
+  action_process.Run()
 
 if __name__ == '__main__':
   main()
