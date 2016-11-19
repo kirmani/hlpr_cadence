@@ -18,13 +18,13 @@ class ExtendTransition(Transition):
   def fire(self,binding):
     if(self.actionType == "start"):
       if(self.enabled(binding)):
-        Transitioself.petri_net_.fire(self,binding)
+        Transition.fire(self,binding)
         p = Process(target=sayThings,args=("Hello world, how are you doing, this is a long sentence",))
         p.start()
     elif(self.actionType == "interrupt"):
       if(self.enabled(binding)):
         os.system("killall -s STOP espeak")
-        Transitioself.petri_net_.fire(self,binding)
+        Transition.fire(self,binding)
     elif(self.actionType == "finish"):
       #guard
       print("finishing")
@@ -55,9 +55,9 @@ class ActionProcess:
     places.append(Place('finished',[]))
 
     transitions = []
-    transitioself.petri_net_.append(ExtendTransition("start"))
-    transitioself.petri_net_.append(ExtendTransition("interrupt"))
-    transitioself.petri_net_.append(ExtendTransition("finish"))
+    transitions.append(ExtendTransition("start"))
+    transitions.append(ExtendTransition("interrupt"))
+    transitions.append(ExtendTransition("finish"))
 
     for place in places:
       self.petri_net_.add_place(place)
@@ -72,21 +72,45 @@ class ActionProcess:
     self.petri_net_.add_output("finished", "finish", Expression("act"))
     self.petri_net_.add_output("interrupted", "interrupt", Expression("act"))
 
-def main():
-  action_process = ActionProcess('speech')
+  def AddAction(self, action):
+    # Queue up action token.
+    self.petri_net_.place('queue').add(action.name)
+
+    # Place resource tokens in requested place.
+    for token in action.preconditions:
+      FirePetriNetArc('request_robot', token)
+
+def FirePetriNetArc(transition, token):
   rospy.wait_for_service('do_petri_net_arc')
   try:
-    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc',DoPetriNetArc)
-    ans = do_petri_net_arc("fire","requested","floor")
+    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+    do_petri_net_arc('fire', None, transition, token)
   except rospy.ServiceException, e:
-    print("Service call failed: %s"%e)
+    print("Service call failed: %s" % e)
 
-  self.petri_net_.transition('start').fire(self.petri_net_.transition("start").modes().pop())
+def CheckGuard(place, token):
+  rospy.wait_for_service('do_petri_net_arc')
+  try:
+    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+    return do_petri_net_arc('guard', place, None, token)
+  except rospy.ServiceException, e:
+    print("Service call failed: %s" % e)
+    return False
 
-  while("act" not in self.petri_net_.place('finished')):
-    self.petri_net_.transition('interrupt').fire(self.petri_net_.transition("interrupt").modes().pop())
-    self.petri_net_.transition('finish').fire(self.petri_net_.transition("finish").modes().pop())
 
+class Action:
+  def __init__(self, name, entities, preconditions, postconditions):
+    self.name = name
+    self.entities = entities
+    self.preconditions = preconditions
+    self.postconditions = postconditions
 
-main()
+def main():
+  action_process = ActionProcess('speech_action_process')
+
+  action = Action('speech', ['floor'], {'floor': 'true'}, {'floor': 'true'})
+  action_process.AddAction(action)
+
+if __name__ == '__main__':
+  main()
 

@@ -12,17 +12,20 @@ Timed Petri net for resource controller.
 
 from snakes.nets import PetriNet
 from snakes.nets import Place
+from snakes.nets import Substitution
 from snakes.nets import Transition
 from snakes.nets import Variable
 from hlpr_cadence.srv import *
 import rospy
+
+RESOURCES = ['floor']
 
 class ResourceController():
   def __init__(self):
     self.petri_net_ = PetriNet('resource_controller')
 
     # Global places.
-    self.petri_net_.add_place(Place('free', ['floor']))
+    self.petri_net_.add_place(Place('free', RESOURCES))
     self.petri_net_.add_transition(Transition('yield'))
     self.petri_net_.add_transition(Transition('barge_in'))
 
@@ -41,7 +44,7 @@ class ResourceController():
     self.petri_net_.add_transition(Transition('release_robot'))
 
     # Arcs.
-    self.petri_net_.add_input('free', 'seize_user', Variable("floor"))
+    self.petri_net_.add_input('free', 'seize_user', Variable('floor'))
     self.petri_net_.add_input('free', 'seize_robot', Variable("floor"))
     self.petri_net_.add_input('requested_user', 'seize_user', Variable("floor"))
     self.petri_net_.add_input('requested_user', 'yield', Variable("floor"))
@@ -62,25 +65,42 @@ class ResourceController():
     self.petri_net_.add_output('owned_robot', 'seize_robot', Variable("floor"))
     self.petri_net_.add_output('owned_robot', 'barge_in', Variable("floor"))
 
-resource_controller = ResourceController()
+  def get_marking(self):
+    return self.petri_net_.get_marking()
+
+  def has_place(self, name):
+    return self.petri_net_.has_place(name)
+
+  def has_transition(self, name):
+    return self.petri_net_.has_transition(name)
+
+  def place(self, name=None):
+    return self.petri_net_.place(name)
+
+  def transition(self, name=None):
+    return self.petri_net_.transition(name)
 
 def handle_do_petri_net_arc(req):
-  print "Received: (%s, %s, %s)" \
-      % (req.fire_guard, req.place, req.token)
+  print "Received: (%s, %s, %s, %s)" \
+      % (req.fire_guard, req.place, req.transition, req.token)
   if req.fire_guard == 'fire':
-    if not self.petri_net_.has_place(req.place):
+    if not resource_controller.has_transition(req.transition):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
-    place = self.petri_net_.place(req.place)
-    place.add(req.token)
+    resource_controller.transition(req.transition).fire(Substitution(floor=req.token))
+    print("Resource marking: %s" % str(resource_controller.get_marking()))
     return DoPetriNetArcResponse(True)
   if req.fire_guard == 'guard':
-    if not self.petri_net_.has_place(req.place):
+    if not resource_controller.has_place(req.place):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
-    place = self.petri_net_.place(req.place)
+    place = resource_controller.place(req.place)
     return DoPetriNetArcResponse(req.token in place)
   raise rospy.ServiceException("Invalid fire_guard input: %s" % req.fire_guard)
 
 def main():
+  global resource_controller
+  resource_controller = ResourceController()
+  print("Initial marking: %s" % str(resource_controller.get_marking()))
+
   rospy.init_node('do_petri_net_arc')
   s = rospy.Service('do_petri_net_arc', DoPetriNetArc, handle_do_petri_net_arc)
   print("Ready to do petri net arcs.")
