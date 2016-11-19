@@ -49,15 +49,15 @@ class ActionProcess:
     self.petri_net_ = PetriNet(self.name_)
 
     self.places_ = []
-    self.places_.append(Place('queue',["act"]))
+    self.places_.append(Place('queue',[]))
     self.places_.append(Place('started',[]))
     self.places_.append(Place('interrupted',[]))
     self.places_.append(Place('finished',[]))
 
     self.transitions_ = []
-    self.transitions_.append(ExtendTransition("start"))
-    self.transitions_.append(ExtendTransition("interrupt"))
-    self.transitions_.append(ExtendTransition("finish"))
+    self.transitions_.append(ExtendTransition('start'))
+    self.transitions_.append(ExtendTransition('interrupt'))
+    self.transitions_.append(ExtendTransition('finish'))
 
     for place in self.places_:
       self.petri_net_.add_place(place)
@@ -83,7 +83,9 @@ class ActionProcess:
   def Run(self):
     while True:
       for transition in self.transitions_:
-        pass  # TODO(kirmani): write this
+        if len(transition.modes()) > 0:
+          transition.fire(transition.modes().pop())
+          # print("Action marking: %s" % str(self.petri_net_.get_marking()))
 
 def FirePetriNetArc(transition, token):
   rospy.wait_for_service('do_petri_net_arc')
