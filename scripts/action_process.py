@@ -10,36 +10,36 @@ from hlpr_cadence.srv import DoPetriNetArc
 
 
 class ExtendTransition(Transition):
-	actionType = ""
-	def fire(self,binding):
-		if(self.actionType == "start"):
-			if(self.enabled(binding)):
-				p.start()
-				Transition.fire(self,binding)
-		elif(self.actionType == "interrupt"):
-			if(self.enabled(binding)):
-				p.terminate()
-				Transition.fire(self,binding)
-		elif(self.actionType == "finish"):
-			running = p.is_alive()
-			if(self.enabled(binding) and not running):
-				print("finishing")
-				Transition.fire(self,binding)
+  actionType = ""
+  def fire(self,binding):
+    if(self.actionType == "start"):
+      if(self.enabled(binding)):
+        p.start()
+        Transition.fire(self,binding)
+    elif(self.actionType == "interrupt"):
+      if(self.enabled(binding)):
+        p.terminate()
+        Transition.fire(self,binding)
+    elif(self.actionType == "finish"):
+      running = p.is_alive()
+      if(self.enabled(binding) and not running):
+        print("finishing")
+        Transition.fire(self,binding)
 
-	def enabled(self,binding):
-		rospy.wait_for_service('do_petri_net_arc')
-		try:
-			do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc',DoPetriNetArc)
-			return do_petri_net_arc("guard","owned",None,"floor").guard and Transitioself.petri_net_.enabled(binding)
-		except rospy.ServiceException, e:
-			print("Service call failed: %s"%e)
-			return False
+  def enabled(self,binding):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc',DoPetriNetArc)
+      return do_petri_net_arc("guard","owned",None,"floor").guard and Transitioself.petri_net_.enabled(binding)
+    except rospy.ServiceException, e:
+      print("Service call failed: %s"%e)
+      return False
 
 def sayThings(text):
-	rate = 99/2
-	pitch = 99/2
-	rate = 80+(370-80)*int(rate)/100
-	subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
+  rate = 99/2
+  pitch = 99/2
+  rate = 80+(370-80)*int(rate)/100
+  subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
 
 class ActionProcess:
   def __init__(self, name):
@@ -111,12 +111,12 @@ class Action:
     self.postconditions = postconditions
 
 def main():
-	global p 
-	p = Process(target=sayThings,args=("Hello world, how are you doing, this is a long sentence"))
-	action_process = ActionProcess('speech_action_process')
-	action = Action('speech', ['floor'], {'floor': 'true'}, {'floor': 'true'})
-	action_process.AddAction(action)
-	action_process.Run()
+  global p
+  p = Process(target=sayThings,args=("Hello world, how are you doing, this is a long sentence"))
+  action_process = ActionProcess('speech_action_process')
+  action = Action('speech', ['floor'], {'floor': 'true'}, {'floor': 'true'})
+  action_process.AddAction(action)
+  action_process.Run()
 
 if __name__ == '__main__':
   main()
