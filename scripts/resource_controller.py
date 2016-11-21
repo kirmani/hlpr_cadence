@@ -106,6 +106,11 @@ class ResourceController():
     print("Resource marking after remove: %s" % str(resource_controller.get_marking()))
     return True
 
+  def ContainsTokenInPlace(self, place, token):
+    if not self.petri_net_.has_place(place):
+      raise ValueError("Does not have place: %s" % place)
+    return token in self.petri_net_.place(place)
+
   # def Run(self):
   #   while not rospy.is_shutdown():
   #     for transition in self.transitions_:
@@ -127,12 +132,10 @@ def handle_do_petri_net_arc(req):
       return DoPetriNetArcResponse(
           resource_controller.RemoveTokenFromPlace(req.place, req.token))
   if req.fire_guard == 'guard':
-    if not resource_controller.has_place(req.place):
-      raise rospy.ServiceException("Does not have place: %s" % req.place)
-    place = resource_controller.place(req.place)
+    guard = resource_controller.ContainsTokenInPlace(req.place, req.token)
     print("Checking if resource token (%s) is in place (%s): %s"
-          % (req.token, req.place, req.token in place))
-    return DoPetriNetArcResponse(req.token in place)
+          % (req.token, req.place, guard))
+    return DoPetriNetArcResponse(guard)
   raise rospy.ServiceException("Invalid fire_guard input: %s" % req.fire_guard)
 
 def main():

@@ -7,44 +7,26 @@ import os
 import subprocess
 from multiprocessing import Process
 from hlpr_cadence.srv import DoPetriNetArc
+from petri_net import *
 
-class ActionProcessNode(object):
-  def __init__(self, name):
-    self.name = name
-    self.outputs_ = []
-
-  def AddOutput(self, node):
-    self.outputs_.append(node)
-
-  def GetOutputs(self):
-    return self.outputs_
-
-class ActionProcessTransition(ActionProcessNode):
-  def fire(self):
-    if self.activated():
-      pass
-
-  def activated(self):
-    return True
-
-class RemoteTransition(ActionProcessTransition):
+class RemoteTransition(PetriNetTransition):
   def fire(self):
     firing_succeeded = FirePetriNetArc(self.name, 'floor')
     print ("Firing succeeded: %s" % firing_succeeded)
     return firing_succeeded
 
-class StartTransition(ActionProcessTransition):
+class StartTransition(PetriNetTransition):
   def __init__(self, name):
-    ActionProcessTransition.__init__(self, name)
+    PetriNetTransition.__init__(self, name)
     self.resource_inputs_ = []
 
   def fire(self):
     if(self.activated()):
       p.start()
-      ActionProcessTransition.fire(self)
+      PetriNetTransition.fire(self)
 
   def activated(self):
-    if not ActionProcessTransition.activated(self):
+    if not PetriNetTransition.activated(self):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -60,18 +42,18 @@ class StartTransition(ActionProcessTransition):
   def AddResourceInput(self, resource):
     self.resource_inputs_.append(resource)
 
-class InterruptTransition(ActionProcessTransition):
+class InterruptTransition(PetriNetTransition):
   def __init__(self, name):
-    ActionProcessTransition.__init__(self, name)
+    PetriNetTransition.__init__(self, name)
     self.resource_inputs_ = []
 
   def fire(self):
     if(self.activated()):
       p.terminate()
-      ActionProcessTransition.fire(self)
+      PetriNetTransition.fire(self)
 
   def activated(self):
-    if not ActionProcessTransition.activated(self):
+    if not PetriNetTransition.activated(self):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -87,13 +69,22 @@ class InterruptTransition(ActionProcessTransition):
   def AddResourceInput(self, resource):
     self.resource_inputs_.append(resource)
 
-class FinishTransition(ActionProcessTransition):
+class FinishTransition(PetriNetTransition):
+  def __init__(self, name, action):
+    PetriNetTransition.__init__(self, name)
+    self.action_ = action
+
+  def fire(self):
+    pass
+    # for token in self.action_.postconditions:
+    #   AddResourceToPlace('requested_robot', token)
+
   def activated(self):
     return not p.is_alive()
 
-class SeizeRobotTransition(ActionProcessTransition):
+class SeizeRobotTransition(PetriNetTransition):
   def __init__(self, name, action):
-    ActionProcessTransition.__init__(self, name)
+    PetriNetTransition.__init__(self, name)
     self.resource_inputs_ = []
     self.action_ = action
 
@@ -101,13 +92,12 @@ class SeizeRobotTransition(ActionProcessTransition):
     if(self.activated()):
       # Remove resources from requested, and put resource tokens in requested
       # place.
-      for token in self.action_.preconditions:
-        RemoveResourceFromPlace('requested_robot', token)
-        AddResourceToPlace('owned_robot', token)
-      ActionProcessTransition.fire(self)
+      RemoveResourceFromPlace('requested_robot', 'floor')
+      AddResourceToPlace('owned_robot', 'floor')
+      PetriNetTransition.fire(self)
 
   def activated(self):
-    if not ActionProcessTransition.activated(self):
+    if not PetriNetTransition.activated(self):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -129,21 +119,6 @@ def sayThings(text):
   rate = 80+(370-80)*int(rate)/100
   subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
 
-class ActionProcessPlace(ActionProcessNode):
-  def GetTransitions(self):
-    return self.outputs_
-
-class ActionToken(ActionProcessNode):
-  def __init__(self, name, location):
-    ActionProcessNode.__init__(self, name)
-    self.location_ = location
-
-  def GetLocation(self):
-    return self.location_
-
-  def SetLocation(self, location):
-    self.location_ = location
-
 class ActionProcess:
   def __init__(self, name, action):
     self.name_ = name
@@ -154,10 +129,10 @@ class ActionProcess:
     self.end_place_ = None
 
     # Places.
-    queue_place = ActionProcessPlace('queue')
-    started_place = ActionProcessPlace('started')
-    interrupted_place = ActionProcessPlace('interrupted')
-    finished_place = ActionProcessPlace('finished')
+    queue_place = PetriNetPlace('queue')
+    started_place = PetriNetPlace('started')
+    interrupted_place = PetriNetPlace('interrupted')
+    finished_place = PetriNetPlace('finished')
     # self.places_.append(Place('queue',[]))
     # self.places_.append(Place('started',[]))
     # self.places_.append(Place('interrupted',[]))
@@ -171,7 +146,7 @@ class ActionProcess:
     seize_robot_transition = SeizeRobotTransition('seize_robot', action)
     seize_robot_transition.AddResourceInput('requested_robot')
     seize_robot_transition.AddResourceInput('free')
-    finish_transition = FinishTransition('finish')
+    finish_transition = FinishTransition('finish', action)
     # self.transitions_.append(start_transition)
     # self.transitions_.append(interrupt_transition)
     # self.transitions_.append(finish_transition)
@@ -210,7 +185,7 @@ class ActionProcess:
 
   def Run(self):
     # Put action token in queue.
-    action_token = ActionToken(self.action_.name, self.start_place_)
+    action_token = PetriNetToken(self.action_.name, self.start_place_)
 
     # Place resource tokens in requested place.
     for token in self.action_.preconditions:
