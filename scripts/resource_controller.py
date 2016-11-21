@@ -15,7 +15,8 @@ from petri_net import *
 import rospy
 
 kResources = ['floor']
-kPlaces = ['free', 'requested_robot', 'owned_robot', 'requested_user']
+kPlaces = ['free', 'requested_robot', 'owned_robot', 'requested_user',
+           'owned_user']
 
 class ResourceControllerApi:
   @staticmethod
@@ -109,8 +110,8 @@ class ResourceController(PetriNet):
     return marking
 
 def handle_do_petri_net_arc(req):
-  print "Received: (%s, %s, %s)" \
-      % (req.action, req.place, req.token)
+  # print "Received: (%s, %s, %s)" \
+  #     % (req.action, req.place, req.token)
   if req.action == 'add':
     resource_controller.AddTokenToPlace(req.place, req.token)
     return DoPetriNetArcResponse(True)
@@ -119,8 +120,8 @@ def handle_do_petri_net_arc(req):
         resource_controller.RemoveTokenFromPlace(req.place, req.token))
   if req.action == 'guard':
     response = resource_controller.HasTokenInPlace(req.place, req.token)
-    print("Checking if resource token (%s) is in place (%s): %s"
-          % (req.token, req.place, response))
+    # print("Checking if resource token (%s) is in place (%s): %s"
+    #       % (req.token, req.place, response))
     return DoPetriNetArcResponse(response)
   raise rospy.ServiceException("Invalid action input: %s" % req.action)
 

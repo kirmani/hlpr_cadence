@@ -47,7 +47,21 @@ class RequestUserTransition(PetriNetTransition):
 
   def activated(self):
     return self.listener_.CheckFloor() and \
-        not ResourceControllerApi.CheckGuard('requested_user', 'floor')
+        not ResourceControllerApi.CheckGuard('owned_user', 'floor')
+
+class SeizeUserTransition(PetriNetTransition):
+  def __init__(self):
+    PetriNetTransition.__init__(self, 'seize_user')
+
+  def fire(self):
+    print("Seizing resource for user: %s" % 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('requested_user', 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
+    ResourceControllerApi.AddResourceToPlace('owned_user', 'floor')
+
+  def activated(self):
+    return ResourceControllerApi.CheckGuard('requested_user', 'floor') and \
+        ResourceControllerApi.CheckGuard('free', 'floor')
 
 class FloorController(PetriNet):
   def __init__(self):
@@ -55,6 +69,7 @@ class FloorController(PetriNet):
     floor_listener = FloorListener()
 
     self.transitions_.append(RequestUserTransition(floor_listener))
+    self.transitions_.append(SeizeUserTransition())
 
   def EndCondition(self):
     return rospy.is_shutdown()
