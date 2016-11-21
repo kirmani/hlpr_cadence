@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
-import rospy
-from std_msgs.msg import String
-import os
-import subprocess
-from multiprocessing import Process
-from hlpr_cadence.srv import DoPetriNetArc
-from petri_net import *
+from petri_net import PetriNet
+from petri_net import PetriNetPlace
+from petri_net import PetriNetTransition
 from resource_controller import ResourceControllerApi
-import signal
+import rospy
 
 class StartTransition(PetriNetTransition):
   def __init__(self, name, action, queue, started):
@@ -137,58 +133,3 @@ class ActionProcess(PetriNet):
 
   def EndCondition(self):
     return rospy.is_shutdown() or self.finished_.HasToken(self.action_.name)
-
-class Action:
-  def __init__(self, name, entities, preconditions, postconditions):
-    self.name = name
-    self.entities = entities
-    self.preconditions = preconditions
-    self.postconditions = postconditions
-
-  def Start(self):
-    pass
-
-  def Interrupt(self):
-    pass
-
-  def IsFinished(self):
-    return True
-
-class Speak(Action):
-  def __init__(self, rate, pitch, text):
-    Action.__init__(self, 'speech', ['floor'], {'floor': True}, {'floor': False})
-    self.rate_ = rate
-    self.pitch_ = pitch
-    self.text_ = text
-    self.process_ = Process(target= self.Speak_)
-    self.subprocess_ = None
-
-  def Start(self):
-    self.process_.start()
-
-  def Interrupt(self):
-    os.killpg(os.getpgid(self.process_.pid), signal.SIGTERM)
-
-  def IsFinished(self):
-    return not self.process_.is_alive()
-
-  def sigterm_handler(_signo, _stack_frame):
-        # Raises SystemExit(0):
-            sys.exit(0)
-
-  def Speak_(self):
-      cmd = ['espeak', '-p', str(self.pitch_), '-s', str(self.rate_), '-v',
-             'en', self.text_]
-      proc = subprocess.Popen(cmd).wait()
-
-def main():
-  rate = 150
-  pitch = 50
-  long_sentence = "Hello world, how are you doing, this is a long sentence."
-  speak = Speak(rate, pitch, long_sentence)
-  action_process = ActionProcess('speech_action_process', speak)
-  action_process.Run()
-
-if __name__ == '__main__':
-  main()
-
