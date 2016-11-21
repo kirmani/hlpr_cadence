@@ -65,6 +65,22 @@ class ReleaseRobotTransition(PetriNetTransition):
     return self.requested_robot_.HasToken('floor') \
        and self.owned_robot_.HasToken('floor')
 
+class YieldTransition(PetriNetTransition):
+  def __init__(self, requested_user, owned_robot, owned_user):
+    PetriNetTransition.__init__(self, 'yield')
+    self.requested_user_ = requested_user
+    self.owned_robot_ = owned_robot
+    self.owned_user_ = owned_user
+
+  def fire(self):
+    self.requested_user_.RemoveToken('floor')
+    self.owned_robot_.RemoveToken('floor')
+    self.owned_user_.AddToken('floor')
+
+  def activated(self):
+    return self.requested_user_.HasToken('floor') \
+       and self.owned_robot_.HasToken('floor')
+
 class ResourceController(PetriNet):
   def __init__(self):
     PetriNet.__init__(self, 'resource_controller')
@@ -79,6 +95,10 @@ class ResourceController(PetriNet):
         ReleaseRobotTransition(self.places_['requested_robot'],
                                self.places_['owned_robot'],
                                self.places_['free']))
+    self.transitions_.append(
+        YieldTransition(self.places_['requested_user'],
+                               self.places_['owned_robot'],
+                               self.places_['owned_user']))
 
     for resource in kResources:
       self.places_['free'].AddToken(resource)

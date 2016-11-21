@@ -35,12 +35,13 @@ class InterruptTransition(PetriNetTransition):
     PetriNetTransition.__init__(self, name)
     self.action_ = action
     self.started_ = started
+    self.interrupted_ = interrupted
 
   def fire(self):
     print("Interrupting action: %s" % self.action_.name)
     p.terminate()
-    started.RemoveToken(self.action_.name)
-    started.AddToken(self.action_.name)
+    self.started_.RemoveToken(self.action_.name)
+    self.interrupted_.AddToken(self.action_.name)
 
   def activated(self):
     if not self.started_.HasToken(self.action_.name):
@@ -62,16 +63,15 @@ class FinishTransition(PetriNetTransition):
     print("Finishing action: %s" % self.action_.name)
     if self.started_.HasToken(self.action_.name):
       self.started_.RemoveToken(self.action_.name)
+      ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
     self.finished_.AddToken(self.action_.name)
-    ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
 
   def activated(self):
-    if not (self.started_.HasToken(self.action_.name) \
-        and self.started_.HasToken(self.action_.name)):
-      return False
-    return not p.is_alive()
+    return (self.started_.HasToken(self.action_.name) \
+        or self.interrupted_.HasToken(self.action_.name)) \
+        and not p.is_alive()
 
 class SeizeRobotTransition(PetriNetTransition):
   def __init__(self, name, action):
@@ -89,7 +89,8 @@ class SeizeRobotTransition(PetriNetTransition):
     if not PetriNetTransition.activated(self):
       return False
     for resource in self.action_.preconditions:
-      if not (ResourceControllerApi.CheckGuard('requested_robot', resource) and ResourceControllerApi.CheckGuard('free', resource)):
+      if not (ResourceControllerApi.CheckGuard('requested_robot', resource)
+              and ResourceControllerApi.CheckGuard('free', resource)):
         return False
     return True
 
@@ -111,10 +112,11 @@ class RequestRobotTransition(PetriNetTransition):
     return False
 
 def sayThings(text):
-  rate = 99/2
-  pitch = 99/2
-  rate = 80+(370-80)*int(rate)/100
-  subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
+  while True:
+    rate = 99/2
+    pitch = 99/2
+    rate = 80+(370-80)*int(rate)/100
+    subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
 
 class ActionProcess(PetriNet):
   def __init__(self, name, action):
@@ -131,8 +133,8 @@ class ActionProcess(PetriNet):
     self.transitions_.append(RequestRobotTransition(action))
     self.transitions_.append(StartTransition('start', action, queue, started))
     self.transitions_.append(SeizeRobotTransition('seize_robot', action))
-    # self.transitions_.append(
-    #     InterruptTransition('interrupt', action, started, interrupted))
+    self.transitions_.append(
+        InterruptTransition('interrupt', action, started, interrupted))
     self.transitions_.append(
         FinishTransition('finish', action, started,interrupted, self.finished_))
 

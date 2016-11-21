@@ -26,15 +26,6 @@ kInputBlockTime = 0.05  # seconds
 kInputFramesPerBlock = int(kRate * kInputBlockTime)
 kShortNormalize = (1.0 / 32768.0)
 
-# If we get this many noisy blocks in a row, increase the threshold.
-kOversensitive = 15.0 / kInputBlockTime
-
-# If we get this many quiet blocks in a row, decrease the threshold.
-kUndersensitive = 120 / kInputBlockTime
-
-# If the noise was longer than this many blocks, it's not a 'tap'.
-kMaxTapBlocks = 0.15 / kInputBlockTime
-
 class RequestUserTransition(PetriNetTransition):
   def __init__(self, listener):
     PetriNetTransition.__init__(self, 'request_user')
@@ -46,7 +37,7 @@ class RequestUserTransition(PetriNetTransition):
     ResourceControllerApi.AddResourceToPlace('requested_user', 'floor')
 
   def activated(self):
-    return self.listener_.CheckFloor() and \
+    return self.listener_.Poll() and \
         not ResourceControllerApi.CheckGuard('owned_user', 'floor')
 
 class SeizeUserTransition(PetriNetTransition):
@@ -63,25 +54,52 @@ class SeizeUserTransition(PetriNetTransition):
     return ResourceControllerApi.CheckGuard('requested_user', 'floor') and \
         ResourceControllerApi.CheckGuard('free', 'floor')
 
-class FloorController(PetriNet):
-  def __init__(self):
-    PetriNet.__init__(self, 'floor_controller')
-    floor_listener = FloorListener()
+class ReleaseUserTransition(PetriNetTransition):
+  def __init__(self, listener):
+    PetriNetTransition.__init__(self, 'release_user')
+    self.listener_ = listener
 
-    self.transitions_.append(RequestUserTransition(floor_listener))
+  def fire(self):
+    print("Releasing resource for user: %s" % 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('owned_user', 'floor')
+    ResourceControllerApi.AddResourceToPlace('free', 'floor')
+
+  def activated(self):
+    return not self.listener_.Poll() and \
+        ResourceControllerApi.CheckGuard('owned_user', 'floor')
+
+class ResourceListenerController(PetriNet):
+  def __init__(self, listener):
+    PetriNet.__init__(self, 'floor_controller')
+    self.listener_ = listener
+
+    self.transitions_.append(RequestUserTransition(self.listener_))
     self.transitions_.append(SeizeUserTransition())
+    self.transitions_.append(ReleaseUserTransition(self.listener_))
+
+  def Run(self):
+    self.listener_.StartListening()
+    PetriNet.Run(self)
 
   def EndCondition(self):
     return rospy.is_shutdown()
 
-class FloorListener:
+class ResourceListener:
+  def StartListening(self):
+    pass
+
+  def Poll(self):
+    pass
+
+class KeyboardListener:
+  pass
+
+class FloorListener(ResourceListener):
   def __init__(self):
     self.pa_ = pyaudio.PyAudio()
     self.stream_ = self.open_mic_stream()
     self.floor_holding_threshold_ = kInitialFloorHoldingThreshold
-    self.noisy_count_ = kMaxTapBlocks + 1
     self.error_count_ = 0
-    self.quiet_count_ = 0
 
   def find_input_device(self):
     device_index = None
@@ -106,34 +124,17 @@ class FloorListener:
                           frames_per_buffer=kInputFramesPerBlock)
     return stream
 
-  def CheckFloor(self):
+  def Poll(self):
     try:
       block = self.stream_.read(kInputFramesPerBlock)
     except IOError, e:
       # Damnit.
       self.error_count_ += 1
       print("(%d) Error recording: %s" % (self.error_count_, e))
-      self.noisy_count_ = 1
       return
 
     amplitude = self.GetRms_(block)
-    print(amplitude)
     return amplitude > self.floor_holding_threshold_
-    #   # Noisy block.
-    #   self.quiet_count_ = 0
-    #   self.noisy_count_ += 1
-    #   if self.noisy_count_ > kOversensitive:
-    #     # Turn down the sensitivity.
-    #     self.floor_holding_threshold_ *= 1.1
-    # else:
-    #   # Quiet block.
-    #   if 1 <= self.noisy_count_ <= kMaxTapBlocks:
-    #     self.FloorHoldingDetected()
-    #   self.noisy_count_ = 0
-    #   self.quiet_count_ += 1
-    #   if self.quiet_count_ > kUndersensitive:
-    #     # Turn up the sensitivity.
-    #     self.floor_holding_threshold_ *= 0.9
 
   def GetRms_(self, block):
     # We will get one short out for each two chars in the string.
@@ -151,8 +152,9 @@ class FloorListener:
     return math.sqrt(sum_squares / count)
 
 def main():
-  floor_controller = FloorController()
-  floor_controller.Run()
+  floor_listener = FloorListener()
+  floor_listener_controller = ResourceListenerController(floor_listener)
+  floor_listener_controller.Run()
 
 if __name__ == '__main__':
   main()
