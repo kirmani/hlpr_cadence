@@ -14,6 +14,9 @@ from hlpr_cadence.srv import *
 from petri_net import *
 import rospy
 
+kVerbose = True
+kDebug = True
+
 kResources = ['floor']
 kPlaces = ['free', 'requested_robot', 'owned_robot', 'requested_user',
            'owned_user']
@@ -57,6 +60,7 @@ class ReleaseRobotTransition(PetriNetTransition):
     self.free_ = free
 
   def fire(self):
+    if kVerbose: print("Releasing resource (%s) from robot." % 'floor')
     self.requested_robot_.RemoveToken('floor')
     self.owned_robot_.RemoveToken('floor')
     self.free_.AddToken('floor')
@@ -73,6 +77,7 @@ class YieldTransition(PetriNetTransition):
     self.owned_user_ = owned_user
 
   def fire(self):
+    if kVerbose: print("Yielding resource (%s) from robot to human." % 'floor')
     self.requested_user_.RemoveToken('floor')
     self.owned_robot_.RemoveToken('floor')
     self.owned_user_.AddToken('floor')
@@ -108,8 +113,9 @@ class ResourceController(PetriNet):
       raise ValueError("Does not have place: %s" % place)
     self.places_[place].AddToken(token)
     self.Run()
-    print("Marking after adding token (%s) to place (%s): %s"
-          % (token, place, str(resource_controller.GetMarking())))
+    if kDebug:
+      print("Marking after adding token (%s) to place (%s): %s"
+            % (token, place, str(resource_controller.GetMarking())))
 
   def HasTokenInPlace(self, place, token):
     if place not in self.places_:
@@ -121,6 +127,9 @@ class ResourceController(PetriNet):
       raise ValueError("Does not have place: %s" % place)
     remove_successful = self.places_[place].RemoveToken(token)
     self.Run()
+    if kDebug:
+      print("Marking after removing token (%s) to place (%s): %s"
+            % (token, place, str(resource_controller.GetMarking())))
     return remove_successful
 
   def GetMarking(self):
@@ -148,12 +157,12 @@ def handle_do_petri_net_arc(req):
 def main():
   global resource_controller
   resource_controller = ResourceController()
-  print("Initial marking: %s" % str(resource_controller.GetMarking()))
+  if kDebug:
+    print("Initial marking: %s" % str(resource_controller.GetMarking()))
 
   rospy.init_node('do_petri_net_arc')
   s = rospy.Service('do_petri_net_arc', DoPetriNetArc, handle_do_petri_net_arc)
   print("Ready to do petri net arcs.")
-  # resource_controller.Run()
   rospy.spin()
 
 if __name__ == '__main__':

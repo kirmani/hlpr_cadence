@@ -18,6 +18,14 @@ import pyaudio
 import rospy
 import struct
 
+# For keyboard listener.
+import termios, fcntl, sys, os, time
+
+# Dummy listener for debugging.
+kUseKeyboardListener = True
+
+kVerbose = True
+
 kInitialFloorHoldingThreshold = 0.001
 kFormat = pyaudio.paInt16
 kChannels = 2
@@ -33,7 +41,7 @@ class RequestUserTransition(PetriNetTransition):
 
   def fire(self):
     # Place resource tokens in requested place.
-    print("Requesting resource for user: %s" % 'floor')
+    if kVerbose: print("Requesting resource for user: %s" % 'floor')
     ResourceControllerApi.AddResourceToPlace('requested_user', 'floor')
 
   def activated(self):
@@ -45,7 +53,7 @@ class SeizeUserTransition(PetriNetTransition):
     PetriNetTransition.__init__(self, 'seize_user')
 
   def fire(self):
-    print("Seizing resource for user: %s" % 'floor')
+    if kVerbose: print("Seizing resource for user: %s" % 'floor')
     ResourceControllerApi.RemoveResourceFromPlace('requested_user', 'floor')
     ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
     ResourceControllerApi.AddResourceToPlace('owned_user', 'floor')
@@ -60,7 +68,7 @@ class ReleaseUserTransition(PetriNetTransition):
     self.listener_ = listener
 
   def fire(self):
-    print("Releasing resource for user: %s" % 'floor')
+    if kVerbose: print("Releasing resource for user: %s" % 'floor')
     ResourceControllerApi.RemoveResourceFromPlace('owned_user', 'floor')
     ResourceControllerApi.AddResourceToPlace('free', 'floor')
 
@@ -89,10 +97,40 @@ class ResourceListener:
     pass
 
   def Poll(self):
-    pass
+    return False
 
-class KeyboardListener:
-  pass
+class KeyboardListener(ResourceListener):
+  def StartListening(self):
+    self.minimum_hold_time_ = 0.5 # seconds
+    self.last_update_time_ = 0
+    print("Listening for *any* keyboard input.")
+
+  def Poll(self):
+    now = time.time()
+
+    fd = sys.stdin.fileno()
+
+    oldterm = termios.tcgetattr(fd)
+    newattr = termios.tcgetattr(fd)
+    newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
+    termios.tcsetattr(fd, termios.TCSANOW, newattr)
+
+    oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
+    c = None
+
+    try:
+      c = sys.stdin.read(1)
+    except IOError:
+      pass
+
+    termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
+    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
+
+    if c != None:
+      self.last_update_time_ = now
+
+    return now - self.last_update_time_ < self.minimum_hold_time_
 
 class FloorListener(ResourceListener):
   def __init__(self):
@@ -152,7 +190,8 @@ class FloorListener(ResourceListener):
     return math.sqrt(sum_squares / count)
 
 def main():
-  floor_listener = FloorListener()
+  global args
+  floor_listener = KeyboardListener() if kUseKeyboardListener else FloorListener()
   floor_listener_controller = ResourceListenerController(floor_listener)
   floor_listener_controller.Run()
 
