@@ -13,11 +13,6 @@ Timed Petri net for resource controller.
 from hlpr_cadence.srv import *
 from petri_net import *
 import rospy
-# from snakes.nets import PetriNet
-# from snakes.nets import Place
-# from snakes.nets import Substitution
-# from snakes.nets import Transition
-# from snakes.nets import Variable
 
 kResources = ['floor']
 kPlaces = ['free', 'requested_robot', 'owned_robot']

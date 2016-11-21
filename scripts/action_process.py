@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from snakes.nets import *
 import rospy
 from std_msgs.msg import String
 import os
