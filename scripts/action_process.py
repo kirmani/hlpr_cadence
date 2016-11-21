@@ -8,24 +8,43 @@ import subprocess
 from multiprocessing import Process
 from hlpr_cadence.srv import DoPetriNetArc
 
-class RemoteTransition(Transition):
-  def fire(self, binding):
+class ActionProcessNode(object):
+  def __init__(self, name):
+    self.name = name
+    self.outputs_ = []
+
+  def AddOutput(self, node):
+    self.outputs_.append(node)
+
+  def GetOutputs(self):
+    return self.outputs_
+
+class ActionProcessTransition(ActionProcessNode):
+  def fire(self):
+    if self.activated():
+      pass
+
+  def activated(self):
+    return True
+
+class RemoteTransition(ActionProcessTransition):
+  def fire(self):
     firing_succeeded = FirePetriNetArc(self.name, 'floor')
     print ("Firing succeeded: %s" % firing_succeeded)
     return firing_succeeded
 
-class StartTransition(Transition):
-  def __init__(self, name, guard=None):
-    Transition.__init__(self, name, guard)
+class StartTransition(ActionProcessTransition):
+  def __init__(self, name):
+    ActionProcessTransition.__init__(self, name)
     self.resource_inputs_ = []
 
-  def fire(self,binding):
-    if(self.activated(binding)):
+  def fire(self):
+    if(self.activated()):
       p.start()
-      Transition.fire(self, binding)
+      ActionProcessTransition.fire(self)
 
-  def activated(self, binding):
-    if not Transition.activated(self, binding):
+  def activated(self):
+    if not ActionProcessTransition.activated(self):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -41,18 +60,18 @@ class StartTransition(Transition):
   def AddResourceInput(self, resource):
     self.resource_inputs_.append(resource)
 
-class InterruptTransition(Transition):
-  def __init__(self, name, guard=None):
-    Transition.__init__(self, name, guard)
+class InterruptTransition(ActionProcessTransition):
+  def __init__(self, name):
+    ActionProcessTransition.__init__(self, name)
     self.resource_inputs_ = []
 
-  def fire(self,binding):
-    if(self.activated(binding)):
+  def fire(self):
+    if(self.activated()):
       p.terminate()
-      Transition.fire(self, binding)
+      ActionProcessTransition.fire(self)
 
-  def activated(self, binding):
-    if not Transition.activated(self, binding):
+  def activated(self):
+    if not ActionProcessTransition.activated(self):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -68,55 +87,29 @@ class InterruptTransition(Transition):
   def AddResourceInput(self, resource):
     self.resource_inputs_.append(resource)
 
-class FinishTransition(Transition):
-  def activated(self, binding):
+class FinishTransition(ActionProcessTransition):
+  def activated(self):
     return not p.is_alive()
-
-class ExtendTransition(Transition):
-  def __init__(self, name, guard=None):
-    Transition.__init__(self, name, guard)
-    self.resource_inputs_ = []
-
-  # actionType = ""
-  # def fire(self,binding):
-  #   if(self.actionType == "start"):
-  #     if(self.activated(binding)):
-  #       p.start()
-  #       Transition.fire(self,binding)
-  #   elif(self.actionType == "interrupt"):
-  #     if(self.activated(binding)):
-  #       p.terminate()
-  #       Transition.fire(self,binding)
-  #   elif(self.actionType == "finish"):
-  #     running = p.is_alive()
-  #     if(self.activated(binding) and not running):
-  #       print("finishing")
-  #       Transition.fire(self,binding)
-
-  def activated(self, binding):
-    if not Transition.activated(self, binding):
-      return False
-    # print("binding: %s" % binding)
-    # return Transition.activated(self, binding)
-    rospy.wait_for_service('do_petri_net_arc')
-    try:
-      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      for resource_input in self.resource_inputs_:
-        if not do_petri_net_arc('guard', resource_input, None, 'floor').guard:
-          return self.name == 'interrupt'
-      return not self.name == 'interrupt'
-    except rospy.ServiceException, e:
-      print("Service call failed: %s"%e)
-      return False
-
-  def AddResourceInput(self, resource):
-    self.resource_inputs_.append(resource)
 
 def sayThings(text):
   rate = 99/2
   pitch = 99/2
   rate = 80+(370-80)*int(rate)/100
   subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
+
+class ActionProcessPlace(ActionProcessNode):
+  def GetTransitions(self):
+    return self.outputs_
+
+class ActionToken(ActionProcessNode):
+  def __init__(self, name, location):
+    self.location_ = location
+
+  def GetLocation(self):
+    return self.location_
+
+  def SetLocation(self, location):
+    self.location_ = location
 
 class ActionProcess:
   def __init__(self, name, action):
@@ -125,58 +118,90 @@ class ActionProcess:
     self.places_ = []
     self.transitions_ = []
     self.action_ = action
+    self.start_place_ = None
+    self.end_place_ = None
 
     # Places.
-    self.places_.append(Place('queue',[]))
-    self.places_.append(Place('started',[]))
-    self.places_.append(Place('interrupted',[]))
-    self.places_.append(Place('finished',[]))
+    queue_place = ActionProcessPlace('queue')
+    started_place = ActionProcessPlace('started')
+    interrupted_place = ActionProcessPlace('interrupted')
+    finished_place = ActionProcessPlace('finished')
+    # self.places_.append(Place('queue',[]))
+    # self.places_.append(Place('started',[]))
+    # self.places_.append(Place('interrupted',[]))
+    # self.places_.append(Place('finished',[]))
 
     # Transitions.
     start_transition = StartTransition('start')
     start_transition.AddResourceInput('owned_robot')
-    self.transitions_.append(start_transition)
     interrupt_transition = InterruptTransition('interrupt')
     interrupt_transition.AddResourceInput('owned_robot')
-    self.transitions_.append(interrupt_transition)
     finish_transition = FinishTransition('finish')
-    self.transitions_.append(finish_transition)
-    self.transitions_.append(RemoteTransition('seize_robot'))
+    seize_robot_transition = RemoteTransition('seize_robot')
+    # self.transitions_.append(start_transition)
+    # self.transitions_.append(interrupt_transition)
+    # self.transitions_.append(finish_transition)
+    # self.transitions_.append(RemoteTransition('seize_robot'))
 
-    for place in self.places_:
-      self.petri_net_.add_place(place)
-    for transition in self.transitions_:
-      self.petri_net_.add_transition(transition)
+    # Guard arcs.
+    queue_place.AddOutput(seize_robot_transition)
+    queue_place.AddOutput(start_transition)
+    started_place.AddOutput(interrupt_transition)
+    started_place.AddOutput(finish_transition)
+    interrupted_place.AddOutput(finish_transition)
+
+    # Firing arcs.
+    start_transition.AddOutput(started_place)
+    interrupt_transition.AddOutput(interrupted_place)
+    finish_transition.AddOutput(finished_place)
+
+    # Set starting and ending place.
+    self.start_place_ = queue_place
+    self.end_place_ = finished_place
+
+    # for place in self.places_:
+    #   self.petri_net_.add_place(place)
+    # for transition in self.transitions_:
+    #   self.petri_net_.add_transition(transition)
 
     # Arcs.
-    self.petri_net_.add_input("queue", "start", Variable('act'))
-    self.petri_net_.add_output("started", "start", Expression("act"))
-    self.petri_net_.add_input("started", "interrupt", Variable("act"))
-    self.petri_net_.add_input("started", "finish", Variable("act"))
-    self.petri_net_.add_input("interrupted", "finish", Variable("act"))
-    self.petri_net_.add_output("finished", "finish", Expression("act"))
-    self.petri_net_.add_output("interrupted", "interrupt", Expression("act"))
-    self.petri_net_.add_input('queue', 'seize_robot', Variable('act'))
+    # self.petri_net_.add_input("queue", "start", Variable('act'))
+    # self.petri_net_.add_output("started", "start", Expression("act"))
+    # self.petri_net_.add_input("started", "interrupt", Variable("act"))
+    # self.petri_net_.add_input("started", "finish", Variable("act"))
+    # self.petri_net_.add_input("interrupted", "finish", Variable("act"))
+    # self.petri_net_.add_output("finished", "finish", Expression("act"))
+    # self.petri_net_.add_output("interrupted", "interrupt", Expression("act"))
+    # self.petri_net_.add_input('queue', 'seize_robot', Variable('act'))
 
   def Run(self):
-    # Queue up action token.
-    self.petri_net_.place('queue').add(self.action_.name)
-    print("Added action to queue %s" % str(self.petri_net_.get_marking()))
+    # Put action token in queue.
+    action_token = ActionToken(self.action_.name, self.start_place_)
+    print("Added action token to queue %s" % str(self.petri_net_.get_marking()))
 
     # Place resource tokens in requested place.
     for token in self.action_.preconditions:
       FirePetriNetArc('request_robot', token)
 
-    while not rospy.is_shutdown():
-      for transition in self.transitions_:
-        if len(transition.modes()) > 0:
-          binding = transition.modes().pop()
-          if (transition.enabled(binding)):
-            print("Markings before firing transition (%s): %s"
-                % (transition.name, self.petri_net_.get_marking()))
-            transition.fire(binding)
-            print("Markings after firing transition (%s): %s"
-                % (transition.name, self.petri_net_.get_marking()))
+    while not rospy.is_shutdown() and not action_token.GetLocation() == self.end_place_:
+      for transition in action_token.GetLocation().GetTransitions():
+        if transition.activated():
+          transition.fire()
+          places = transition.GetOutputs()
+          if len(places) == 1:
+            action_token.SetLocation(places[0])
+
+    # while not rospy.is_shutdown():
+    #   for transition in self.transitions_:
+    #     if len(transition.modes()) > 0:
+    #       binding = transition.modes().pop()
+    #       if (transition.activated(binding)):
+    #         print("Markings before firing transition (%s): %s"
+    #             % (transition.name, self.petri_net_.get_marking()))
+    #         transition.fire(binding)
+    #         print("Markings after firing transition (%s): %s"
+    #             % (transition.name, self.petri_net_.get_marking()))
+
 
 def FirePetriNetArc(transition, token):
   rospy.wait_for_service('do_petri_net_arc')
