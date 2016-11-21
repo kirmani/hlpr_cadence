@@ -20,12 +20,12 @@ class StartTransition(Transition):
     self.resource_inputs_ = []
 
   def fire(self,binding):
-    if(self.enabled(binding)):
+    if(self.activated(binding)):
       p.start()
       Transition.fire(self, binding)
 
-  def enabled(self, binding):
-    if not Transition.enabled(self, binding):
+  def activated(self, binding):
+    if not Transition.activated(self, binding):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -47,12 +47,12 @@ class InterruptTransition(Transition):
     self.resource_inputs_ = []
 
   def fire(self,binding):
-    if(self.enabled(binding)):
+    if(self.activated(binding)):
       p.terminate()
       Transition.fire(self, binding)
 
-  def enabled(self, binding):
-    if not Transition.enabled(self, binding):
+  def activated(self, binding):
+    if not Transition.activated(self, binding):
       return False
     rospy.wait_for_service('do_petri_net_arc')
     try:
@@ -69,7 +69,7 @@ class InterruptTransition(Transition):
     self.resource_inputs_.append(resource)
 
 class FinishTransition(Transition):
-  def enabled(self, binding):
+  def activated(self, binding):
     return not p.is_alive()
 
 class ExtendTransition(Transition):
@@ -80,24 +80,24 @@ class ExtendTransition(Transition):
   # actionType = ""
   # def fire(self,binding):
   #   if(self.actionType == "start"):
-  #     if(self.enabled(binding)):
+  #     if(self.activated(binding)):
   #       p.start()
   #       Transition.fire(self,binding)
   #   elif(self.actionType == "interrupt"):
-  #     if(self.enabled(binding)):
+  #     if(self.activated(binding)):
   #       p.terminate()
   #       Transition.fire(self,binding)
   #   elif(self.actionType == "finish"):
   #     running = p.is_alive()
-  #     if(self.enabled(binding) and not running):
+  #     if(self.activated(binding) and not running):
   #       print("finishing")
   #       Transition.fire(self,binding)
 
-  def enabled(self, binding):
-    if not Transition.enabled(self, binding):
+  def activated(self, binding):
+    if not Transition.activated(self, binding):
       return False
     # print("binding: %s" % binding)
-    # return Transition.enabled(self, binding)
+    # return Transition.activated(self, binding)
     rospy.wait_for_service('do_petri_net_arc')
     try:
       do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
@@ -174,7 +174,7 @@ class ActionProcess:
             print("Markings before firing transition (%s): %s"
                 % (transition.name, self.petri_net_.get_marking()))
             transition.fire(binding)
-            print("Markings before firing transition (%s): %s"
+            print("Markings after firing transition (%s): %s"
                 % (transition.name, self.petri_net_.get_marking()))
 
 def FirePetriNetArc(transition, token):

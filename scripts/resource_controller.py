@@ -124,7 +124,7 @@ def handle_do_petri_net_arc(req):
       raise rospy.ServiceException("Does not have place: %s" % req.place)
     place = resource_controller.place(req.place)
     print("Checking if resource token (%s) is in place (%s): %s"
-          % (req.token, req.place, req.token in req.place))
+          % (req.token, req.place, req.token in place))
     return DoPetriNetArcResponse(req.token in place)
   raise rospy.ServiceException("Invalid fire_guard input: %s" % req.fire_guard)
 
