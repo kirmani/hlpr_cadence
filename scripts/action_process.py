@@ -18,7 +18,7 @@ class StartTransition(PetriNetTransition):
 
   def fire(self):
     print("Starting action: %s" % self.action_.name)
-    p.start()
+    self.action_.Start()
     self.queue_.RemoveToken(self.action_.name)
     self.started_.AddToken(self.action_.name)
 
@@ -39,7 +39,7 @@ class InterruptTransition(PetriNetTransition):
 
   def fire(self):
     print("Interrupting action: %s" % self.action_.name)
-    p.terminate()
+    self.action_.Interrupt()
     self.started_.RemoveToken(self.action_.name)
     self.interrupted_.AddToken(self.action_.name)
 
@@ -71,7 +71,7 @@ class FinishTransition(PetriNetTransition):
   def activated(self):
     return (self.started_.HasToken(self.action_.name) \
         or self.interrupted_.HasToken(self.action_.name)) \
-        and not p.is_alive()
+        and self.action_.IsFinished()
 
 class SeizeRobotTransition(PetriNetTransition):
   def __init__(self, name, action):
@@ -111,13 +111,6 @@ class RequestRobotTransition(PetriNetTransition):
       return True
     return False
 
-def sayThings(text):
-  while True:
-    rate = 99/2
-    pitch = 99/2
-    rate = 80+(370-80)*int(rate)/100
-    subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
-
 class ActionProcess(PetriNet):
   def __init__(self, name, action):
     PetriNet.__init__(self, name)
@@ -151,11 +144,45 @@ class Action:
     self.preconditions = preconditions
     self.postconditions = postconditions
 
+  def Start(self):
+    pass
+
+  def Interrupt(self):
+    pass
+
+  def IsFinished(self):
+    return True
+
+class Speak(Action):
+  def __init__(self, rate, pitch, text):
+    Action.__init__(self, 'speech', ['floor'], {'floor': True}, {'floor': False})
+    self.rate_ = rate
+    self.pitch_ = pitch
+    self.text_ = text
+    self.process_ = Process(target = self.Speak_)
+
+  def Start(self):
+    self.process_.start()
+
+  def Interrupt(self):
+    self.process_.terminate()
+
+  def IsFinished(self):
+    return not self.process_.is_alive()
+
+  def Speak_(self):
+    while True:
+      subprocess.call(
+          ["espeak", "-p", str(self.pitch_),
+           "-s", str(self.rate_), "-v", "en", self.text_],
+          stdout=subprocess.PIPE)
+
 def main():
-  global p
-  p = Process(target=sayThings,args=("Hello world, how are you doing, this is a long sentence",))
-  action = Action('speech', ['floor'], {'floor': 'true'}, {'floor': 'true'})
-  action_process = ActionProcess('speech_action_process', action)
+  rate = 150
+  pitch = 50
+  long_sentence = "Hello world, how are you doing, this is a long sentence."
+  speak = Speak(rate, pitch, long_sentence)
+  action_process = ActionProcess('speech_action_process', speak)
   action_process.Run()
 
 if __name__ == '__main__':
