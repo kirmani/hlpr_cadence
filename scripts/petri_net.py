@@ -13,15 +13,13 @@
 class PetriNetNode(object):
   def __init__(self, name):
     self.name = name
-    self.outputs_ = []
-
-  def AddOutput(self, node):
-    self.outputs_.append(node)
-
-  def GetOutputs(self):
-    return self.outputs_
 
 class PetriNetTransition(PetriNetNode):
+  def __init__(self, name):
+    PetriNetNode.__init__(self, name)
+    self.inputs_ = []
+    self.outputs_ = []
+
   def fire(self):
     if self.activated():
       pass
@@ -30,8 +28,21 @@ class PetriNetTransition(PetriNetNode):
     return True
 
 class PetriNetPlace(PetriNetNode):
-  def GetTransitions(self):
-    return self.outputs_
+  def __init__(self, name):
+    PetriNetNode.__init__(self, name)
+    self.tokens_ = []
+
+  def AddToken(self, token):
+    self.tokens_.append(token)
+
+  def HasToken(self, token):
+    return token in self.tokens_
+
+  def RemoveToken(self, token):
+    if token not in self.tokens_:
+      return False
+    self.tokens_.remove(token)
+    return True
 
 class PetriNetToken(PetriNetNode):
   def __init__(self, name, location):
@@ -44,3 +55,19 @@ class PetriNetToken(PetriNetNode):
   def SetLocation(self, location):
     self.location_ = location
 
+class PetriNet(object):
+  def __init__(self, name):
+    self.name_ = name
+    self.transitions_ = []
+    self.static_ = False
+
+  def Run(self):
+    while not self.EndCondition():
+      self.static_ = True
+      for transition in self.transitions_:
+        if transition.activated():
+          transition.fire()
+          self.static_ = False
+
+  def EndCondition(self):
+    return self.static_

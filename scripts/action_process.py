@@ -10,17 +10,20 @@ from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
 
 class StartTransition(PetriNetTransition):
-  def __init__(self, name, action):
+  def __init__(self, name, action, queue, started):
     PetriNetTransition.__init__(self, name)
     self.action_ = action
+    self.queue_ = queue
+    self.started_ = started
 
   def fire(self):
     if(self.activated()):
       p.start()
-      PetriNetTransition.fire(self)
+      queue.RemoveToken(self.action_.name)
+      started.AddToken(self.action_.name)
 
   def activated(self):
-    if not PetriNetTransition.activated(self):
+    if not self.queue_.HasToken(self.action_.name):
       return False
     for resource in self.action_.preconditions:
       if not (CheckGuard('owned_robot', resource) and CheckGuard('free', resource)):
@@ -28,17 +31,19 @@ class StartTransition(PetriNetTransition):
     return True
 
 class InterruptTransition(PetriNetTransition):
-  def __init__(self, name, action):
+  def __init__(self, name, action, started, interrupted):
     PetriNetTransition.__init__(self, name)
     self.action_ = action
+    self.started_ = started
 
   def fire(self):
     if(self.activated()):
       p.terminate()
-      PetriNetTransition.fire(self)
+      started.RemoveToken(self.action_.name)
+      started.AddToken(self.action_.name)
 
   def activated(self):
-    if not PetriNetTransition.activated(self):
+    if not self.started_.HasToken(self.action_.name):
       return False
     for resource in self.action_.preconditions:
       if not CheckGuard('owned_robot', resource):
@@ -46,16 +51,25 @@ class InterruptTransition(PetriNetTransition):
     return False
 
 class FinishTransition(PetriNetTransition):
-  def __init__(self, name, action):
+  def __init__(self, name, action, started, interrupted, finished):
     PetriNetTransition.__init__(self, name)
     self.action_ = action
+    self.started_ = started
+    self.interrupted_ = interrupted
+    self.finished_ = finished
 
   def fire(self):
-    pass
-    # for token in self.action_.postconditions:
-    #   AddResourceToPlace('requested_robot', token)
+    if self.activated():
+      if self.started_.HasToken(self.action_.name):
+        self.started_.RemoveToken(self.action_.name)
+      if self.interrupted.HasToken(self.action_.name):
+        self.interrupted_.RemoveToken(self.action_.name)
+      started.AddToken(self.action_.name)
 
   def activated(self):
+    if not (self.started_.HasToken(self.action_.name) \
+        and self.started_.HasToken(self.action_.name)):
+      return False
     return not p.is_alive()
 
 class SeizeRobotTransition(PetriNetTransition):
@@ -79,65 +93,52 @@ class SeizeRobotTransition(PetriNetTransition):
         return False
     return True
 
+class RequestRobotTransition(PetriNetTransition):
+  def __init__(self, name):
+    PetriNetTransition.__init__(self, name)
+    self.already_requested_ = False
+
+  def fire(self):
+    if self.activated():
+      # Place resource tokens in requested place.
+      AddResourceToPlace('requested_robot', token)
+
+  def activated(self):
+    if not self.already_requested:
+      self.already_requested = True
+      return True
+    return False
+
 def sayThings(text):
   rate = 99/2
   pitch = 99/2
   rate = 80+(370-80)*int(rate)/100
   subprocess.call(["espeak","-p",str(pitch),"-s",str(rate),"-v","en",text],stdout=subprocess.PIPE)
 
-class ActionProcess:
+class ActionProcess(PetriNet):
   def __init__(self, name, action):
-    self.name_ = name
-    self.places_ = []
-    self.transitions_ = []
+    PetriNet.__init__(self, name)
     self.action_ = action
-    self.start_place_ = None
-    self.end_place_ = None
 
     # Places.
-    queue_place = PetriNetPlace('queue')
-    started_place = PetriNetPlace('started')
-    interrupted_place = PetriNetPlace('interrupted')
-    finished_place = PetriNetPlace('finished')
+    queue = PetriNetPlace('queue')
+    started = PetriNetPlace('started')
+    interrupted = PetriNetPlace('interrupted')
+    self.finished_ = PetriNetPlace('finished')
 
     # Transitions.
-    start_transition = StartTransition('start', action)
-    interrupt_transition = InterruptTransition('interrupt', action)
-    seize_robot_transition = SeizeRobotTransition('seize_robot', action)
-    finish_transition = FinishTransition('finish', action)
+    self.transitions_.append(StartTransition('start', action, queue, started))
+    self.transitions_.append(
+        InterruptTransition('interrupt', action, started, interrupted))
+    self.transitions_.append(
+        FinishTransition('finish', action, started,interrupted, self.finished_))
+    self.transitions_.append(SeizeRobotTransition('seize_robot', action))
 
-    # Guard arcs.
-    queue_place.AddOutput(seize_robot_transition)
-    queue_place.AddOutput(start_transition)
-    started_place.AddOutput(interrupt_transition)
-    started_place.AddOutput(finish_transition)
-    interrupted_place.AddOutput(finish_transition)
-
-    # Firing arcs.
-    start_transition.AddOutput(started_place)
-    interrupt_transition.AddOutput(interrupted_place)
-    finish_transition.AddOutput(finished_place)
-
-    # Set starting and ending place.
-    self.start_place_ = queue_place
-    self.end_place_ = finished_place
-
-  def Run(self):
     # Put action token in queue.
-    action_token = PetriNetToken(self.action_.name, self.start_place_)
+    action_token = PetriNetToken(self.action_.name, queue)
 
-    # Place resource tokens in requested place.
-    for token in self.action_.preconditions:
-      AddResourceToPlace('requested_robot', token)
-
-    while not rospy.is_shutdown() and not action_token.GetLocation() == self.end_place_:
-      for transition in action_token.GetLocation().GetTransitions():
-        if transition.activated():
-          transition.fire()
-          places = transition.GetOutputs()
-          if len(places) == 1:
-            action_token.SetLocation(places[0])
-            print("current location: %s" % action_token.GetLocation().name)
+  def EndCondition(self):
+    return rospy.is_shutdown() or self.finished_.HasToken(self.action_.name)
 
 def RemoveResourceFromPlace(place, token):
   rospy.wait_for_service('do_petri_net_arc')

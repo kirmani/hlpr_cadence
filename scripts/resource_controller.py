@@ -10,15 +10,49 @@
 Timed Petri net for resource controller.
 """
 
+from hlpr_cadence.srv import *
+from petri_net import *
+import rospy
 from snakes.nets import PetriNet
 from snakes.nets import Place
 from snakes.nets import Substitution
 from snakes.nets import Transition
 from snakes.nets import Variable
-from hlpr_cadence.srv import *
-import rospy
 
-RESOURCES = ['floor']
+kResources = ['floor']
+
+class ReleaseRobotTransition(PetriNetTransition):
+  def __init__(self, requested_robot, owned_robot, free):
+    PetriNetTransition.__init__(self, 'release_robot')
+    self.requested_robot_ = requested_robot
+    self.owned_robot_ = owned_robot
+    self.free_ = free
+
+  def fire():
+    if self.activated():
+      self.requested_robot_.RemoveToken('floor')
+      self.owned_robot_.RemoveToken('floor')
+      self.free_.AddToken('floor')
+
+  def activated():
+    return self.requested_robot_.HasToken('floor') \
+       and self.owned_robot_.HasToken('floor')
+
+class RC(PetriNet):
+  def __init__(self, name):
+    PetriNet.__init__(self, name)
+
+    # Places.
+    free = PetriNetPlace('free')
+    requested_robot = PetriNetPlace('requested_robot')
+    owned_robot = PetriNetPlace('owned_robot')
+
+    # Transitions.
+    self.transitions_.append(
+        ReleaseRobotTransition(requested_robot, owned_robot, free))
+
+    for resource in kResources:
+      free.AddToken(resource)
 
 class ResourceController():
   def __init__(self):
@@ -27,7 +61,7 @@ class ResourceController():
     self.transitions_ = []
 
     # Global places.
-    self.places_.append(Place('free', RESOURCES))
+    self.places_.append(Place('free', kResources))
 
     # Resource controller (user) places.
     self.places_.append(Place('requested_user', []))
