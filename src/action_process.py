@@ -9,6 +9,7 @@ from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
 from resource_controller import ResourceControllerApi
 import signal
+import sys
 
 class StartTransition(PetriNetTransition):
   def __init__(self, name, action, queue, started):
@@ -182,12 +183,15 @@ class Speak(Action):
       proc = subprocess.Popen(cmd).wait()
 
 def main():
-  rate = 150
-  pitch = 50
-  long_sentence = "Hello world, how are you doing, this is a long sentence."
-  speak = Speak(rate, pitch, long_sentence)
-  action_process = ActionProcess('speech_action_process', speak)
-  action_process.Run()
+	if(len(sys.argv) > 1):
+		sentence = sys.argv[1]
+	else:
+		sentence = "Hello world"
+	rate = 150
+	pitch = 50
+	speak = Speak(rate, pitch, sentence)
+	action_process = ActionProcess('speech_action_process', speak)
+	action_process.Run()
 
 if __name__ == '__main__':
   main()
