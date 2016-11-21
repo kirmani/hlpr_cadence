@@ -22,7 +22,7 @@ import struct
 import termios, fcntl, sys, os, time
 
 # Dummy listener for debugging.
-kUseKeyboardListener = True
+kUseKeyboardListener = False
 
 kVerbose = True
 
@@ -138,6 +138,8 @@ class FloorListener(ResourceListener):
     self.stream_ = self.open_mic_stream()
     self.floor_holding_threshold_ = kInitialFloorHoldingThreshold
     self.error_count_ = 0
+    self.minimum_hold_time_ = 0.5 # seconds
+    self.last_update_time_ = 0
 
   def find_input_device(self):
     device_index = None
@@ -171,8 +173,13 @@ class FloorListener(ResourceListener):
       print("(%d) Error recording: %s" % (self.error_count_, e))
       return
 
+    now = time.time()
+
     amplitude = self.GetRms_(block)
-    return amplitude > self.floor_holding_threshold_
+    if amplitude > self.floor_holding_threshold_:
+      self.last_update_time_ = now
+
+    return now - self.last_update_time_ < self.minimum_hold_time_
 
   def GetRms_(self, block):
     # We will get one short out for each two chars in the string.
