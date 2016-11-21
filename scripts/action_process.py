@@ -7,6 +7,7 @@ import subprocess
 from multiprocessing import Process
 from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
+from resource_controller import ResourceControllerApi
 
 class StartTransition(PetriNetTransition):
   def __init__(self, name, action, queue, started):
@@ -25,7 +26,7 @@ class StartTransition(PetriNetTransition):
     if not self.queue_.HasToken(self.action_.name):
       return False
     for resource in self.action_.preconditions:
-      if not CheckGuard('owned_robot', resource):
+      if not ResourceControllerApi.CheckGuard('owned_robot', resource):
         return False
     return True
 
@@ -45,7 +46,7 @@ class InterruptTransition(PetriNetTransition):
     if not self.started_.HasToken(self.action_.name):
       return False
     for resource in self.action_.preconditions:
-      if not CheckGuard('owned_robot', resource):
+      if not ResourceControllerApi.CheckGuard('owned_robot', resource):
         return True
     return False
 
@@ -64,7 +65,7 @@ class FinishTransition(PetriNetTransition):
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
     self.finished_.AddToken(self.action_.name)
-    AddResourceToPlace('requested_robot', 'floor')
+    ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
 
   def activated(self):
     if not (self.started_.HasToken(self.action_.name) \
@@ -80,15 +81,15 @@ class SeizeRobotTransition(PetriNetTransition):
   def fire(self):
     # Remove resources from requested, and put resource tokens in requested
     # place.
-    RemoveResourceFromPlace('requested_robot', 'floor')
-    RemoveResourceFromPlace('free', 'floor')
-    AddResourceToPlace('owned_robot', 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('requested_robot', 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
+    ResourceControllerApi.AddResourceToPlace('owned_robot', 'floor')
 
   def activated(self):
     if not PetriNetTransition.activated(self):
       return False
     for resource in self.action_.preconditions:
-      if not (CheckGuard('requested_robot', resource) and CheckGuard('free', resource)):
+      if not (ResourceControllerApi.CheckGuard('requested_robot', resource) and ResourceControllerApi.CheckGuard('free', resource)):
         return False
     return True
 
@@ -101,7 +102,7 @@ class RequestRobotTransition(PetriNetTransition):
   def fire(self):
     # Place resource tokens in requested place.
     print("Requesting resources for action: %s" % self.action_.name)
-    AddResourceToPlace('requested_robot', 'floor')
+    ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
 
   def activated(self):
     if not self.already_requested_:
@@ -140,34 +141,6 @@ class ActionProcess(PetriNet):
 
   def EndCondition(self):
     return rospy.is_shutdown() or self.finished_.HasToken(self.action_.name)
-
-def RemoveResourceFromPlace(place, token):
-  rospy.wait_for_service('do_petri_net_arc')
-  try:
-    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('remove', place, token).response
-  except rospy.ServiceException, e:
-    print("Service call failed: %s" % e)
-    return False
-
-def AddResourceToPlace(place, token):
-  rospy.wait_for_service('do_petri_net_arc')
-  try:
-    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('add', place, token).response
-  except rospy.ServiceException, e:
-    print("Service call failed: %s" % e)
-    return False
-
-def CheckGuard(place, token):
-  rospy.wait_for_service('do_petri_net_arc')
-  try:
-    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('guard', place, token).response
-  except rospy.ServiceException, e:
-    print("Service call failed: %s" % e)
-    return False
-
 
 class Action:
   def __init__(self, name, entities, preconditions, postconditions):

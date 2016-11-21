@@ -15,7 +15,38 @@ from petri_net import *
 import rospy
 
 kResources = ['floor']
-kPlaces = ['free', 'requested_robot', 'owned_robot']
+kPlaces = ['free', 'requested_robot', 'owned_robot', 'requested_user']
+
+class ResourceControllerApi:
+  @staticmethod
+  def RemoveResourceFromPlace(place, token):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      return do_petri_net_arc('remove', place, token).response
+    except rospy.ServiceException, e:
+      print("Service call failed: %s" % e)
+      return False
+
+  @staticmethod
+  def AddResourceToPlace(place, token):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      return do_petri_net_arc('add', place, token).response
+    except rospy.ServiceException, e:
+      print("Service call failed: %s" % e)
+      return False
+
+  @staticmethod
+  def CheckGuard(place, token):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      return do_petri_net_arc('guard', place, token).response
+    except rospy.ServiceException, e:
+      print("Service call failed: %s" % e)
+      return False
 
 class ReleaseRobotTransition(PetriNetTransition):
   def __init__(self, requested_robot, owned_robot, free):

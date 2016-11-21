@@ -10,11 +10,15 @@
 PyAudio Test
 """
 
+from petri_net import *
+from resource_controller import ResourceControllerApi
+
 import math
 import pyaudio
+import rospy
 import struct
 
-kInitialFloorHoldingThreshold = 0.010
+kInitialFloorHoldingThreshold = 0.001
 kFormat = pyaudio.paInt16
 kChannels = 2
 kRate = 44100
@@ -30,6 +34,30 @@ kUndersensitive = 120 / kInputBlockTime
 
 # If the noise was longer than this many blocks, it's not a 'tap'.
 kMaxTapBlocks = 0.15 / kInputBlockTime
+
+class RequestUserTransition(PetriNetTransition):
+  def __init__(self, listener):
+    PetriNetTransition.__init__(self, 'request_user')
+    self.listener_ = listener
+
+  def fire(self):
+    # Place resource tokens in requested place.
+    print("Requesting resource for user: %s" % 'floor')
+    ResourceControllerApi.AddResourceToPlace('requested_user', 'floor')
+
+  def activated(self):
+    return self.listener_.CheckFloor() and \
+        not ResourceControllerApi.CheckGuard('requested_user', 'floor')
+
+class FloorController(PetriNet):
+  def __init__(self):
+    PetriNet.__init__(self, 'floor_controller')
+    floor_listener = FloorListener()
+
+    self.transitions_.append(RequestUserTransition(floor_listener))
+
+  def EndCondition(self):
+    return rospy.is_shutdown()
 
 class FloorListener:
   def __init__(self):
@@ -63,10 +91,7 @@ class FloorListener:
                           frames_per_buffer=kInputFramesPerBlock)
     return stream
 
-  def FloorHoldingDetected(self):
-    print("Floor held!")
-
-  def listen(self):
+  def CheckFloor(self):
     try:
       block = self.stream_.read(kInputFramesPerBlock)
     except IOError, e:
@@ -77,22 +102,23 @@ class FloorListener:
       return
 
     amplitude = self.GetRms_(block)
-    if amplitude > self.floor_holding_threshold_:
-      # Noisy block.
-      self.quiet_count_ = 0
-      self.noisy_count_ += 1
-      if self.noisy_count_ > kOversensitive:
-        # Turn down the sensitivity.
-        self.floor_holding_threshold_ *= 1.1
-    else:
-      # Quiet block.
-      if 1 <= self.noisy_count_ <= kMaxTapBlocks:
-        self.FloorHoldingDetected()
-      self.noisy_count_ = 0
-      self.quiet_count_ += 1
-      if self.quiet_count_ > kUndersensitive:
-        # Turn up the sensitivity.
-        self.floor_holding_threshold_ *= 0.9
+    print(amplitude)
+    return amplitude > self.floor_holding_threshold_
+    #   # Noisy block.
+    #   self.quiet_count_ = 0
+    #   self.noisy_count_ += 1
+    #   if self.noisy_count_ > kOversensitive:
+    #     # Turn down the sensitivity.
+    #     self.floor_holding_threshold_ *= 1.1
+    # else:
+    #   # Quiet block.
+    #   if 1 <= self.noisy_count_ <= kMaxTapBlocks:
+    #     self.FloorHoldingDetected()
+    #   self.noisy_count_ = 0
+    #   self.quiet_count_ += 1
+    #   if self.quiet_count_ > kUndersensitive:
+    #     # Turn up the sensitivity.
+    #     self.floor_holding_threshold_ *= 0.9
 
   def GetRms_(self, block):
     # We will get one short out for each two chars in the string.
@@ -110,9 +136,8 @@ class FloorListener:
     return math.sqrt(sum_squares / count)
 
 def main():
-  floor_listener = FloorListener()
-  for i in range(1000):
-    floor_listener.listen()
+  floor_controller = FloorController()
+  floor_controller.Run()
 
 if __name__ == '__main__':
   main()
