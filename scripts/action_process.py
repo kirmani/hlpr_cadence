@@ -17,16 +17,16 @@ class StartTransition(PetriNetTransition):
     self.started_ = started
 
   def fire(self):
-    if(self.activated()):
-      p.start()
-      queue.RemoveToken(self.action_.name)
-      started.AddToken(self.action_.name)
+    print("Starting action: %s" % self.action_.name)
+    p.start()
+    self.queue_.RemoveToken(self.action_.name)
+    self.started_.AddToken(self.action_.name)
 
   def activated(self):
     if not self.queue_.HasToken(self.action_.name):
       return False
     for resource in self.action_.preconditions:
-      if not (CheckGuard('owned_robot', resource) and CheckGuard('free', resource)):
+      if not CheckGuard('owned_robot', resource):
         return False
     return True
 
@@ -37,10 +37,10 @@ class InterruptTransition(PetriNetTransition):
     self.started_ = started
 
   def fire(self):
-    if(self.activated()):
-      p.terminate()
-      started.RemoveToken(self.action_.name)
-      started.AddToken(self.action_.name)
+    print("Interrupting action: %s" % self.action_.name)
+    p.terminate()
+    started.RemoveToken(self.action_.name)
+    started.AddToken(self.action_.name)
 
   def activated(self):
     if not self.started_.HasToken(self.action_.name):
@@ -59,12 +59,13 @@ class FinishTransition(PetriNetTransition):
     self.finished_ = finished
 
   def fire(self):
-    if self.activated():
-      if self.started_.HasToken(self.action_.name):
-        self.started_.RemoveToken(self.action_.name)
-      if self.interrupted.HasToken(self.action_.name):
-        self.interrupted_.RemoveToken(self.action_.name)
-      started.AddToken(self.action_.name)
+    print("Finishing action: %s" % self.action_.name)
+    if self.started_.HasToken(self.action_.name):
+      self.started_.RemoveToken(self.action_.name)
+    if self.interrupted_.HasToken(self.action_.name):
+      self.interrupted_.RemoveToken(self.action_.name)
+    self.finished_.AddToken(self.action_.name)
+    AddResourceToPlace('requested_robot', 'floor')
 
   def activated(self):
     if not (self.started_.HasToken(self.action_.name) \
@@ -78,34 +79,34 @@ class SeizeRobotTransition(PetriNetTransition):
     self.action_ = action
 
   def fire(self):
-    if(self.activated()):
-      # Remove resources from requested, and put resource tokens in requested
-      # place.
-      RemoveResourceFromPlace('requested_robot', 'floor')
-      AddResourceToPlace('owned_robot', 'floor')
-      PetriNetTransition.fire(self)
+    # Remove resources from requested, and put resource tokens in requested
+    # place.
+    RemoveResourceFromPlace('requested_robot', 'floor')
+    RemoveResourceFromPlace('free', 'floor')
+    AddResourceToPlace('owned_robot', 'floor')
 
   def activated(self):
     if not PetriNetTransition.activated(self):
       return False
     for resource in self.action_.preconditions:
-      if not (CheckGuard('owned_robot', resource) and CheckGuard('free', resource)):
+      if not (CheckGuard('requested_robot', resource) and CheckGuard('free', resource)):
         return False
     return True
 
 class RequestRobotTransition(PetriNetTransition):
-  def __init__(self, name):
-    PetriNetTransition.__init__(self, name)
+  def __init__(self, action):
+    PetriNetTransition.__init__(self, 'request_robot')
+    self.action_ = action
     self.already_requested_ = False
 
   def fire(self):
-    if self.activated():
-      # Place resource tokens in requested place.
-      AddResourceToPlace('requested_robot', token)
+    # Place resource tokens in requested place.
+    print("Requesting resources for action: %s" % self.action_.name)
+    AddResourceToPlace('requested_robot', 'floor')
 
   def activated(self):
-    if not self.already_requested:
-      self.already_requested = True
+    if not self.already_requested_:
+      self.already_requested_ = True
       return True
     return False
 
@@ -127,15 +128,16 @@ class ActionProcess(PetriNet):
     self.finished_ = PetriNetPlace('finished')
 
     # Transitions.
+    self.transitions_.append(RequestRobotTransition(action))
     self.transitions_.append(StartTransition('start', action, queue, started))
-    self.transitions_.append(
-        InterruptTransition('interrupt', action, started, interrupted))
+    self.transitions_.append(SeizeRobotTransition('seize_robot', action))
+    # self.transitions_.append(
+    #     InterruptTransition('interrupt', action, started, interrupted))
     self.transitions_.append(
         FinishTransition('finish', action, started,interrupted, self.finished_))
-    self.transitions_.append(SeizeRobotTransition('seize_robot', action))
 
     # Put action token in queue.
-    action_token = PetriNetToken(self.action_.name, queue)
+    queue.AddToken(self.action_.name)
 
   def EndCondition(self):
     return rospy.is_shutdown() or self.finished_.HasToken(self.action_.name)
@@ -144,7 +146,7 @@ def RemoveResourceFromPlace(place, token):
   rospy.wait_for_service('do_petri_net_arc')
   try:
     do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('fire', place, 'remove', token).guard
+    return do_petri_net_arc('remove', place, token).response
   except rospy.ServiceException, e:
     print("Service call failed: %s" % e)
     return False
@@ -153,7 +155,7 @@ def AddResourceToPlace(place, token):
   rospy.wait_for_service('do_petri_net_arc')
   try:
     do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('fire', place, 'add', token).guard
+    return do_petri_net_arc('add', place, token).response
   except rospy.ServiceException, e:
     print("Service call failed: %s" % e)
     return False
@@ -162,7 +164,7 @@ def CheckGuard(place, token):
   rospy.wait_for_service('do_petri_net_arc')
   try:
     do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('guard', place, None, token)
+    return do_petri_net_arc('guard', place, token).response
   except rospy.ServiceException, e:
     print("Service call failed: %s" % e)
     return False

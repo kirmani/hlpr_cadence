@@ -1,6 +1,5 @@
-string fire_guard
+string action
 string place
-string transition
 string token
 ---
-bool guard
+bool response

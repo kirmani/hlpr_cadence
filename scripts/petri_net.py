@@ -44,6 +44,9 @@ class PetriNetPlace(PetriNetNode):
     self.tokens_.remove(token)
     return True
 
+  def GetTokens(self):
+    return self.tokens_
+
 class PetriNetToken(PetriNetNode):
   def __init__(self, name, location):
     PetriNetNode.__init__(self, name)
@@ -62,6 +65,7 @@ class PetriNet(object):
     self.static_ = False
 
   def Run(self):
+    self.static_ = False
     while not self.EndCondition():
       self.static_ = True
       for transition in self.transitions_:
