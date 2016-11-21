@@ -8,6 +8,7 @@ from multiprocessing import Process
 from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
 from resource_controller import ResourceControllerApi
+import signal
 
 class StartTransition(PetriNetTransition):
   def __init__(self, name, action, queue, started):
@@ -159,23 +160,26 @@ class Speak(Action):
     self.rate_ = rate
     self.pitch_ = pitch
     self.text_ = text
-    self.process_ = Process(target = self.Speak_)
+    self.process_ = Process(target= self.Speak_)
+    self.subprocess_ = None
 
   def Start(self):
     self.process_.start()
 
   def Interrupt(self):
-    self.process_.terminate()
+    os.killpg(os.getpgid(self.process_.pid), signal.SIGTERM)
 
   def IsFinished(self):
     return not self.process_.is_alive()
 
+  def sigterm_handler(_signo, _stack_frame):
+        # Raises SystemExit(0):
+            sys.exit(0)
+
   def Speak_(self):
-    while True:
-      subprocess.call(
-          ["espeak", "-p", str(self.pitch_),
-           "-s", str(self.rate_), "-v", "en", self.text_],
-          stdout=subprocess.PIPE)
+      cmd = ['espeak', '-p', str(self.pitch_), '-s', str(self.rate_), '-v',
+             'en', self.text_]
+      proc = subprocess.Popen(cmd).wait()
 
 def main():
   rate = 150
