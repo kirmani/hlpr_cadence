@@ -10,9 +10,9 @@ from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
 
 class StartTransition(PetriNetTransition):
-  def __init__(self, name):
+  def __init__(self, name, action):
     PetriNetTransition.__init__(self, name)
-    self.resource_inputs_ = []
+    self.action_ = action
 
   def fire(self):
     if(self.activated()):
@@ -22,24 +22,15 @@ class StartTransition(PetriNetTransition):
   def activated(self):
     if not PetriNetTransition.activated(self):
       return False
-    rospy.wait_for_service('do_petri_net_arc')
-    try:
-      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      for resource_input in self.resource_inputs_:
-        if not do_petri_net_arc('guard', resource_input, None, 'floor').guard:
-          return False
-      return True
-    except rospy.ServiceException, e:
-      print("Service call failed: %s"%e)
-      return False
-
-  def AddResourceInput(self, resource):
-    self.resource_inputs_.append(resource)
+    for resource in self.action_.preconditions:
+      if not (CheckGuard('owned_robot', resource) and CheckGuard('free', resource)):
+        return False
+    return True
 
 class InterruptTransition(PetriNetTransition):
-  def __init__(self, name):
+  def __init__(self, name, action):
     PetriNetTransition.__init__(self, name)
-    self.resource_inputs_ = []
+    self.action_ = action
 
   def fire(self):
     if(self.activated()):
@@ -49,19 +40,10 @@ class InterruptTransition(PetriNetTransition):
   def activated(self):
     if not PetriNetTransition.activated(self):
       return False
-    rospy.wait_for_service('do_petri_net_arc')
-    try:
-      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      for resource_input in self.resource_inputs_:
-        if not do_petri_net_arc('guard', resource_input, None, 'floor').guard:
-          return True
-      return False
-    except rospy.ServiceException, e:
-      print("Service call failed: %s"%e)
-      return False
-
-  def AddResourceInput(self, resource):
-    self.resource_inputs_.append(resource)
+    for resource in self.action_.preconditions:
+      if not CheckGuard('owned_robot', resource):
+        return True
+    return False
 
 class FinishTransition(PetriNetTransition):
   def __init__(self, name, action):
@@ -79,7 +61,6 @@ class FinishTransition(PetriNetTransition):
 class SeizeRobotTransition(PetriNetTransition):
   def __init__(self, name, action):
     PetriNetTransition.__init__(self, name)
-    self.resource_inputs_ = []
     self.action_ = action
 
   def fire(self):
@@ -93,19 +74,10 @@ class SeizeRobotTransition(PetriNetTransition):
   def activated(self):
     if not PetriNetTransition.activated(self):
       return False
-    rospy.wait_for_service('do_petri_net_arc')
-    try:
-      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      for resource_input in self.resource_inputs_:
-        if not do_petri_net_arc('guard', resource_input, None, 'floor').guard:
-          return False
-      return True
-    except rospy.ServiceException, e:
-      print("Service call failed: %s"%e)
-      return False
-
-  def AddResourceInput(self, resource):
-    self.resource_inputs_.append(resource)
+    for resource in self.action_.preconditions:
+      if not (CheckGuard('owned_robot', resource) and CheckGuard('free', resource)):
+        return False
+    return True
 
 def sayThings(text):
   rate = 99/2
@@ -127,24 +99,12 @@ class ActionProcess:
     started_place = PetriNetPlace('started')
     interrupted_place = PetriNetPlace('interrupted')
     finished_place = PetriNetPlace('finished')
-    # self.places_.append(Place('queue',[]))
-    # self.places_.append(Place('started',[]))
-    # self.places_.append(Place('interrupted',[]))
-    # self.places_.append(Place('finished',[]))
 
     # Transitions.
-    start_transition = StartTransition('start')
-    start_transition.AddResourceInput('owned_robot')
-    interrupt_transition = InterruptTransition('interrupt')
-    interrupt_transition.AddResourceInput('owned_robot')
+    start_transition = StartTransition('start', action)
+    interrupt_transition = InterruptTransition('interrupt', action)
     seize_robot_transition = SeizeRobotTransition('seize_robot', action)
-    seize_robot_transition.AddResourceInput('requested_robot')
-    seize_robot_transition.AddResourceInput('free')
     finish_transition = FinishTransition('finish', action)
-    # self.transitions_.append(start_transition)
-    # self.transitions_.append(interrupt_transition)
-    # self.transitions_.append(finish_transition)
-    # self.transitions_.append(RemoteTransition('seize_robot'))
 
     # Guard arcs.
     queue_place.AddOutput(seize_robot_transition)
@@ -162,21 +122,6 @@ class ActionProcess:
     self.start_place_ = queue_place
     self.end_place_ = finished_place
 
-    # for place in self.places_:
-    #   self.petri_net_.add_place(place)
-    # for transition in self.transitions_:
-    #   self.petri_net_.add_transition(transition)
-
-    # Arcs.
-    # self.petri_net_.add_input("queue", "start", Variable('act'))
-    # self.petri_net_.add_output("started", "start", Expression("act"))
-    # self.petri_net_.add_input("started", "interrupt", Variable("act"))
-    # self.petri_net_.add_input("started", "finish", Variable("act"))
-    # self.petri_net_.add_input("interrupted", "finish", Variable("act"))
-    # self.petri_net_.add_output("finished", "finish", Expression("act"))
-    # self.petri_net_.add_output("interrupted", "interrupt", Expression("act"))
-    # self.petri_net_.add_input('queue', 'seize_robot', Variable('act'))
-
   def Run(self):
     # Put action token in queue.
     action_token = PetriNetToken(self.action_.name, self.start_place_)
@@ -193,18 +138,6 @@ class ActionProcess:
           if len(places) == 1:
             action_token.SetLocation(places[0])
             print("current location: %s" % action_token.GetLocation().name)
-
-    # while not rospy.is_shutdown():
-    #   for transition in self.transitions_:
-    #     if len(transition.modes()) > 0:
-    #       binding = transition.modes().pop()
-    #       if (transition.activated(binding)):
-    #         print("Markings before firing transition (%s): %s"
-    #             % (transition.name, self.petri_net_.get_marking()))
-    #         transition.fire(binding)
-    #         print("Markings after firing transition (%s): %s"
-    #             % (transition.name, self.petri_net_.get_marking()))
-
 
 def RemoveResourceFromPlace(place, token):
   rospy.wait_for_service('do_petri_net_arc')
