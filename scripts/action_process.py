@@ -9,12 +9,6 @@ from multiprocessing import Process
 from hlpr_cadence.srv import DoPetriNetArc
 from petri_net import *
 
-class RemoteTransition(PetriNetTransition):
-  def fire(self):
-    firing_succeeded = FirePetriNetArc(self.name, 'floor')
-    print ("Firing succeeded: %s" % firing_succeeded)
-    return firing_succeeded
-
 class StartTransition(PetriNetTransition):
   def __init__(self, name):
     PetriNetTransition.__init__(self, name)
