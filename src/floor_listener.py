@@ -26,7 +26,7 @@ kUseKeyboardListener = False
 
 kVerbose = True
 
-kInitialFloorHoldingThreshold = 0.001
+kInitialFloorHoldingThreshold = 0.01
 kFormat = pyaudio.paInt16
 kChannels = 2
 kRate = 44100
