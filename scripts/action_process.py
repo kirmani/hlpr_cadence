@@ -137,6 +137,7 @@ class ActionProcess:
     start_transition.AddResourceInput('owned_robot')
     self.transitions_.append(start_transition)
     interrupt_transition = InterruptTransition('interrupt')
+    interrupt_transition.AddResourceInput('owned_robot')
     self.transitions_.append(interrupt_transition)
     finish_transition = FinishTransition('finish')
     self.transitions_.append(finish_transition)
