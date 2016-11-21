@@ -48,7 +48,6 @@ class ResourceController():
 
     # Resource controller (robot) transitions.
     self.transitions_.append(Transition('request_robot'))
-    self.transitions_.append(Transition('seize_robot'))
     self.transitions_.append(Transition('release_robot'))
 
     for place in self.places_:
@@ -58,12 +57,10 @@ class ResourceController():
 
     # Arcs.
     self.petri_net_.add_input('free', 'seize_user', Variable('floor'))
-    self.petri_net_.add_input('free', 'seize_robot', Variable("floor"))
     self.petri_net_.add_input('requested_user', 'seize_user', Variable("floor"))
     self.petri_net_.add_input('requested_user', 'yield', Variable("floor"))
     self.petri_net_.add_input('owned_user', 'barge_in', Variable("floor"))
     self.petri_net_.add_input('owned_user', 'release_user', Variable("floor"))
-    self.petri_net_.add_input('requested_robot', 'seize_robot', Variable("floor"))
     self.petri_net_.add_input('requested_robot', 'barge_in', Variable("floor"))
     self.petri_net_.add_input('requested_robot', 'release_robot', Variable("floor"))
     self.petri_net_.add_input('owned_robot', 'yield', Variable("floor"))
@@ -75,7 +72,6 @@ class ResourceController():
     self.petri_net_.add_output('owned_user', 'release_user', Variable("floor"))
     self.petri_net_.add_output('owned_user', 'yield', Variable("floor"))
     self.petri_net_.add_output('requested_robot', 'request_robot', Variable("floor"))
-    self.petri_net_.add_output('owned_robot', 'seize_robot', Variable("floor"))
     self.petri_net_.add_output('owned_robot', 'barge_in', Variable("floor"))
 
   def get_marking(self):
@@ -93,14 +89,21 @@ class ResourceController():
   def transition(self, name=None):
     return self.petri_net_.transition(name)
 
-  def AttemptFire(self, transition, token):
-    if not self.petri_net_.has_transition(transition):
-      raise ValueError("Does not have transition: %s" % transition)
-    binding = Substitution(floor=token)
-    if not self.petri_net_.transition(transition).enabled(binding):
+  def AddTokenToPlace(self, place, token):
+    if not self.petri_net_.has_place(place):
+      raise ValueError("Does not have place: %s" % place)
+    self.petri_net_.place(place).add(token)
+    print("Resource marking after add: %s" % str(resource_controller.get_marking()))
+    return True
+
+  def RemoveTokenFromPlace(self, place, token):
+    if not self.petri_net_.has_place(place):
+      raise ValueError("Does not have place: %s" % place)
+    place = self.petri_net_.place(place)
+    if token not in place:
       return False
-    self.petri_net_.transition(transition).fire(Substitution(floor=token))
-    print("Resource marking: %s" % str(resource_controller.get_marking()))
+    place.remove(token)
+    print("Resource marking after remove: %s" % str(resource_controller.get_marking()))
     return True
 
   # def Run(self):
@@ -117,8 +120,12 @@ def handle_do_petri_net_arc(req):
   print "Received: (%s, %s, %s, %s)" \
       % (req.fire_guard, req.place, req.transition, req.token)
   if req.fire_guard == 'fire':
-    firing_succeeded = resource_controller.AttemptFire(req.transition, req.token)
-    return DoPetriNetArcResponse(firing_succeeded)
+    if req.transition == 'add':
+      resource_controller.AddTokenToPlace(req.place, req.token)
+      return DoPetriNetArcResponse(True)
+    if req.transition == 'remove':
+      return DoPetriNetArcResponse(
+          resource_controller.RemoveTokenFromPlace(req.place, req.token))
   if req.fire_guard == 'guard':
     if not resource_controller.has_place(req.place):
       raise rospy.ServiceException("Does not have place: %s" % req.place)

@@ -91,6 +91,38 @@ class FinishTransition(ActionProcessTransition):
   def activated(self):
     return not p.is_alive()
 
+class SeizeRobotTransition(ActionProcessTransition):
+  def __init__(self, name, action):
+    ActionProcessTransition.__init__(self, name)
+    self.resource_inputs_ = []
+    self.action_ = action
+
+  def fire(self):
+    if(self.activated()):
+      # Remove resources from requested, and put resource tokens in requested
+      # place.
+      for token in self.action_.preconditions:
+        RemoveResourceFromPlace('requested_robot', token)
+        AddResourceToPlace('owned_robot', token)
+      ActionProcessTransition.fire(self)
+
+  def activated(self):
+    if not ActionProcessTransition.activated(self):
+      return False
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      for resource_input in self.resource_inputs_:
+        if not do_petri_net_arc('guard', resource_input, None, 'floor').guard:
+          return False
+      return True
+    except rospy.ServiceException, e:
+      print("Service call failed: %s"%e)
+      return False
+
+  def AddResourceInput(self, resource):
+    self.resource_inputs_.append(resource)
+
 def sayThings(text):
   rate = 99/2
   pitch = 99/2
@@ -103,6 +135,7 @@ class ActionProcessPlace(ActionProcessNode):
 
 class ActionToken(ActionProcessNode):
   def __init__(self, name, location):
+    ActionProcessNode.__init__(self, name)
     self.location_ = location
 
   def GetLocation(self):
@@ -114,7 +147,6 @@ class ActionToken(ActionProcessNode):
 class ActionProcess:
   def __init__(self, name, action):
     self.name_ = name
-    self.petri_net_ = PetriNet(self.name_)
     self.places_ = []
     self.transitions_ = []
     self.action_ = action
@@ -136,8 +168,10 @@ class ActionProcess:
     start_transition.AddResourceInput('owned_robot')
     interrupt_transition = InterruptTransition('interrupt')
     interrupt_transition.AddResourceInput('owned_robot')
+    seize_robot_transition = SeizeRobotTransition('seize_robot', action)
+    seize_robot_transition.AddResourceInput('requested_robot')
+    seize_robot_transition.AddResourceInput('free')
     finish_transition = FinishTransition('finish')
-    seize_robot_transition = RemoteTransition('seize_robot')
     # self.transitions_.append(start_transition)
     # self.transitions_.append(interrupt_transition)
     # self.transitions_.append(finish_transition)
@@ -177,11 +211,10 @@ class ActionProcess:
   def Run(self):
     # Put action token in queue.
     action_token = ActionToken(self.action_.name, self.start_place_)
-    print("Added action token to queue %s" % str(self.petri_net_.get_marking()))
 
     # Place resource tokens in requested place.
     for token in self.action_.preconditions:
-      FirePetriNetArc('request_robot', token)
+      AddResourceToPlace('requested_robot', token)
 
     while not rospy.is_shutdown() and not action_token.GetLocation() == self.end_place_:
       for transition in action_token.GetLocation().GetTransitions():
@@ -190,6 +223,7 @@ class ActionProcess:
           places = transition.GetOutputs()
           if len(places) == 1:
             action_token.SetLocation(places[0])
+            print("current location: %s" % action_token.GetLocation().name)
 
     # while not rospy.is_shutdown():
     #   for transition in self.transitions_:
@@ -203,11 +237,20 @@ class ActionProcess:
     #             % (transition.name, self.petri_net_.get_marking()))
 
 
-def FirePetriNetArc(transition, token):
+def RemoveResourceFromPlace(place, token):
   rospy.wait_for_service('do_petri_net_arc')
   try:
     do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-    return do_petri_net_arc('fire', None, transition, token).guard
+    return do_petri_net_arc('fire', place, 'remove', token).guard
+  except rospy.ServiceException, e:
+    print("Service call failed: %s" % e)
+    return False
+
+def AddResourceToPlace(place, token):
+  rospy.wait_for_service('do_petri_net_arc')
+  try:
+    do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+    return do_petri_net_arc('fire', place, 'add', token).guard
   except rospy.ServiceException, e:
     print("Service call failed: %s" % e)
     return False
