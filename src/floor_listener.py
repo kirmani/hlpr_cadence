@@ -147,21 +147,21 @@ class Sampler:
   def IsConfidentValue(self, value):
     if self.num_samples_ > 1:
       # determine confidence z-value
-      z_score = (value - self.expectation_) / math.sqrt(self.variance_ / self.num_samples_)
+      z_score = (value - self.expectation_) / math.sqrt(self.variance_)
       z_cutoff = 1.96
-      confidence_range = z_cutoff * math.sqrt(self.variance_ / self.num_samples_)
+      confidence_range = z_cutoff * math.sqrt(self.variance_)
       lower_bound = self.expectation_ - confidence_range
       upper_bound = self.expectation_ + confidence_range
       # if kVerbose:
       #   print("Confidence range: (%.9f, %.9f)"
       #         % (lower_bound, upper_bound))
       if value < lower_bound:
-        # if kVerbose:
-        #   print("Value below confidence range")
+        if kVerbose:
+          print("Value below confidence range")
         return -1
       if value > upper_bound:
-        # if kVerbose:
-        #   print("Value above confidence range")
+        if kVerbose:
+          print("Value above confidence range")
         return 1
       return 0
 
@@ -238,7 +238,7 @@ class FloorListener(ResourceListener):
     amplitude = self.GetRms_(block)
     self.expected_volume_sampler_.Sample(amplitude)
 
-    if amplitude > self.floor_holding_threshold_:
+    if self.expected_volume_sampler_.IsConfidentValue(amplitude) > 0:
       self.last_update_time_ = now
 
     return now - self.last_update_time_ < self.minimum_hold_time_
