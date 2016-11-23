@@ -21,6 +21,8 @@ import struct
 # For keyboard listener.
 import termios, fcntl, sys, os, time
 
+import random
+
 # Dummy listener for debugging.
 kUseKeyboardListener = False
 
@@ -132,6 +134,62 @@ class KeyboardListener(ResourceListener):
 
     return now - self.last_update_time_ < self.minimum_hold_time_
 
+class Sampler:
+  def __init__(self):
+    self.started_ = False
+    self.expectation_ = 0
+    self.m2_ = 0
+    self.variance_ = 0
+    self.population_variance_ = 0
+    self.num_samples_ = 0
+    self.error_count_ = 0
+
+  def IsConfidentValue(self, value):
+    if self.num_samples_ > 1:
+      # determine confidence z-value
+      z_score = (value - self.expectation_) / math.sqrt(self.variance_ / self.num_samples_)
+      z_cutoff = 1.96
+      confidence_range = z_cutoff * math.sqrt(self.variance_ / self.num_samples_)
+      lower_bound = self.expectation_ - confidence_range
+      upper_bound = self.expectation_ + confidence_range
+      # if kVerbose:
+      #   print("Confidence range: (%.9f, %.9f)"
+      #         % (lower_bound, upper_bound))
+      if value < lower_bound:
+        # if kVerbose:
+        #   print("Value below confidence range")
+        return -1
+      if value > upper_bound:
+        # if kVerbose:
+        #   print("Value above confidence range")
+        return 1
+      return 0
+
+  def Expectation(self):
+    return self.expectation_
+
+  def SampleVariance(self):
+    return self.variance_
+
+  def Sample(self, value):
+    self.num_samples_ += 1
+    error = value - self.expectation_
+    self.expectation_ += error / self.num_samples_
+    self.m2_ += error * (value - self.expectation_)
+
+    self.variance_ = self.m2_ / (self.num_samples_ - 1) \
+        if self.num_samples_ > 1 else 0
+    self.population_variance_ = self.m2_ / (self.num_samples_)
+
+    is_confident = self.IsConfidentValue(value)
+    if is_confident != 0:
+      self.error_count_ += 1
+      # print("Error ratio: %.9f" % (float(self.error_count_) / float(self.num_samples_)))
+
+    # print("Expectation: %.9f" % self.expectation_)
+    # print("Sample Variance: %.9f" % self.variance_)
+    # print("Population Variance: %.9f" % self.population_variance_)
+
 class FloorListener(ResourceListener):
   def __init__(self):
     self.pa_ = pyaudio.PyAudio()
@@ -140,11 +198,7 @@ class FloorListener(ResourceListener):
     self.error_count_ = 0
     self.minimum_hold_time_ = 0.5 # seconds
     self.last_update_time_ = 0
-    self.started_ = False
-    self.expectation_ = -1
-    self.expectation_squared_ = -1
-    self.variance_ = -1
-    self.num_samples_ = 0
+    self.expected_volume_sampler_ = Sampler()
 
   def find_input_device(self):
     device_index = None
@@ -169,63 +223,20 @@ class FloorListener(ResourceListener):
                           frames_per_buffer=kInputFramesPerBlock)
     return stream
 
-  def IsConfidentValue(self, value):
-      # determine confidence z-value
-      z_score = (value - self.expectation_) / math.sqrt(self.variance_ / self.num_samples_)
-      z_cutoff = 1.96
-      confidence_range = z_cutoff * math.sqrt(self.variance_ / self.num_samples_)
-      lower_bound = self.expectation_ - confidence_range
-      upper_bound = self.expectation_ + confidence_range
-      # if kVerbose:
-      #   print("Confidence range: (%.9f, %.9f)"
-      #         % (lower_bound, upper_bound))
-      if value < lower_bound:
-        if kVerbose:
-          print("Value below confidence range")
-        return -1
-      if value > upper_bound:
-        if kVerbose:
-          print("Value above confidence range")
-        return 1
-      return 0
-
-  def Sample(self, value):
-    if not self.started_:
-      self.started_ = True
-      self.expectation_ = value
-      self.variance_ = 0
-      self.expectation_squared_ = value * value
-    else:
-      squared_expectation = \
-          self.variance_ + self.expectation_ * self.expectation_
-      squared_expectation = ((squared_expectation * self.num_samples_)
-          + value * value) / (self.num_samples_ + 1)
-
-      # Set new expectation and variance.
-      self.expectation_ = ((self.expectation_ * self.num_samples_) + value) \
-          / (self.num_samples_ + 1)
-      self.variance_ = \
-          squared_expectation - self.expectation_ * self.expectation_
-
-      is_confident = self.IsConfidentValue(value)
-
-    self.num_samples_ += 1
-    # print(self.expectation_)
-    # print(self.variance_)
-
   def Poll(self):
     try:
       block = self.stream_.read(kInputFramesPerBlock)
     except IOError, e:
       # Damnit.
-      self.error_count_ += 1
+      # self.error_count_ += 1
       print("(%d) Error recording: %s" % (self.error_count_, e))
       return
 
     now = time.time()
 
+    # amplitude = random.uniform(0, 1)
     amplitude = self.GetRms_(block)
-    # self.Sample(amplitude)
+    self.expected_volume_sampler_.Sample(amplitude)
 
     if amplitude > self.floor_holding_threshold_:
       self.last_update_time_ = now
