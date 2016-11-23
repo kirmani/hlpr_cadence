@@ -15,7 +15,7 @@ from speak import Speak
 
 kRate = 150
 kPitch = 50
-kHello = "i really want to finish this sentence so please don't interrupt me " \
+kHello = "please don't interrupt me i really want to finish this sentence" \
     "okay good it worked"
 
 def on_interrupt(action):
