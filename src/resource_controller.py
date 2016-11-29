@@ -10,6 +10,7 @@
 Timed Petri net for resource controller.
 """
 
+from floor_listener import FloorListener
 from hlpr_cadence.srv import *
 from petri_net import *
 from sets import Set
@@ -19,8 +20,7 @@ kVerbose = True
 kDebug = True
 
 kResources = ['floor']
-kPlaces = ['free', 'requested_robot', 'owned_robot', 'requested_user',
-           'owned_user']
+kPlaces = ['requested_robot', 'requested_user', 'owned_user']
 
 class ResourceControllerApi:
   @staticmethod
@@ -107,6 +107,20 @@ class YieldTransition(PetriNetTransition):
     return self.requested_user_.HasToken('floor') \
        and self.owned_robot_.HasToken('floor')
 
+class FreePlace(PetriNetPlace):
+  def __init__(self):
+    PetriNetPlace.__init__(self, 'free')
+
+  def HasToken(self, token):
+    return resource_listeners[token].Poll()
+
+class OwnedRobotPlace(PetriNetPlace):
+  def __init__(self):
+    PetriNetPlace.__init__(self, 'owned_robot')
+
+  def HasToken(self, token):
+    return resource_listeners[token].Poll()
+
 class ResourceController(PetriNet):
   def __init__(self):
     PetriNet.__init__(self, 'resource_controller')
@@ -116,6 +130,8 @@ class ResourceController(PetriNet):
     # Places.
     for place in kPlaces:
       self.places_[place] = PetriNetPlace(place)
+    self.places_['free'] = FreePlace()
+    self.places_['owned_robot'] = OwnedRobotPlace()
 
     # Transitions.
     self.transitions_.append(
@@ -127,8 +143,8 @@ class ResourceController(PetriNet):
                                self.places_['owned_robot'],
                                self.places_['owned_user']))
 
-    for resource in kResources:
-      self.places_['free'].AddToken(resource)
+    # for resource in kResources:
+    #   self.places_['free'].AddToken(resource)
 
   def AddTokenToPlace(self, place, token):
     if place not in self.places_:
@@ -198,6 +214,14 @@ def handle_do_petri_net_arc(req):
 
 def main():
   global resource_controller
+  global resource_listeners
+
+  resource_listeners = {}
+
+  # Add floor listener.
+  floor_listener = FloorListener()
+  resource_listeners[floor_listener.name] = floor_listener
+
   resource_controller = ResourceController()
   if kDebug:
     print("Initial marking: %s" % str(resource_controller.GetMarking()))
