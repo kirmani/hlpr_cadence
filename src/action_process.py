@@ -16,6 +16,7 @@ class StartTransition(PetriNetTransition):
   def fire(self):
     print("Starting action: %s" % self.action_.name)
     self.action_.Start()
+    ResourceControllerApi.AddActiveAction(self.action_.name)
     self.queue_.RemoveToken(self.action_.name)
     self.started_.AddToken(self.action_.name)
 
@@ -39,6 +40,7 @@ class InterruptTransition(PetriNetTransition):
     self.action_.Interrupt()
     self.started_.RemoveToken(self.action_.name)
     self.interrupted_.AddToken(self.action_.name)
+    ResourceControllerApi.RemoveActiveAction(self.action_.name)
 
   def activated(self):
     if not self.started_.HasToken(self.action_.name):
@@ -65,6 +67,7 @@ class FinishTransition(PetriNetTransition):
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
     self.finished_.AddToken(self.action_.name)
+    ResourceControllerApi.RemoveActiveAction(self.action_.name)
 
   def activated(self):
     return (self.started_.HasToken(self.action_.name) \

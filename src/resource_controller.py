@@ -12,6 +12,7 @@ Timed Petri net for resource controller.
 
 from hlpr_cadence.srv import *
 from petri_net import *
+from sets import Set
 import rospy
 
 kVerbose = True
@@ -27,7 +28,7 @@ class ResourceControllerApi:
     rospy.wait_for_service('do_petri_net_arc')
     try:
       do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      return do_petri_net_arc('remove', place, token).response
+      return do_petri_net_arc('remove', place, token, None).response
     except rospy.ServiceException, e:
       print("Service call failed: %s" % e)
       return False
@@ -37,7 +38,7 @@ class ResourceControllerApi:
     rospy.wait_for_service('do_petri_net_arc')
     try:
       do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      return do_petri_net_arc('add', place, token).response
+      return do_petri_net_arc('add', place, token, None).response
     except rospy.ServiceException, e:
       print("Service call failed: %s" % e)
       return False
@@ -47,7 +48,27 @@ class ResourceControllerApi:
     rospy.wait_for_service('do_petri_net_arc')
     try:
       do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
-      return do_petri_net_arc('guard', place, token).response
+      return do_petri_net_arc('guard', place, token, None).response
+    except rospy.ServiceException, e:
+      print("Service call failed: %s" % e)
+      return False
+
+  @staticmethod
+  def AddActiveAction(action):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      return do_petri_net_arc('add_action', None, None, action).response
+    except rospy.ServiceException, e:
+      print("Service call failed: %s" % e)
+      return False
+
+  @staticmethod
+  def RemoveActiveAction(action):
+    rospy.wait_for_service('do_petri_net_arc')
+    try:
+      do_petri_net_arc = rospy.ServiceProxy('do_petri_net_arc', DoPetriNetArc)
+      return do_petri_net_arc('remove_action', None, None, action).response
     except rospy.ServiceException, e:
       print("Service call failed: %s" % e)
       return False
@@ -90,6 +111,7 @@ class ResourceController(PetriNet):
   def __init__(self):
     PetriNet.__init__(self, 'resource_controller')
     self.places_ = {}
+    self.actions_ = Set()
 
     # Places.
     for place in kPlaces:
@@ -138,21 +160,41 @@ class ResourceController(PetriNet):
       marking[place] = self.places_[place].GetTokens()
     return marking
 
+  def AddActiveAction(self, action):
+    if kDebug:
+      print("Adding active action: %s" % action)
+    self.actions_.add(action)
+
+  def RemoveActiveAction(self, action):
+    if kDebug:
+      print("Removing active action: %s" % action)
+    self.actions_.add(action)
+    if action not in self.actions_:
+      return False
+    self.actions_.remove(action)
+    return True
+
 def handle_do_petri_net_arc(req):
   # print "Received: (%s, %s, %s)" \
-  #     % (req.action, req.place, req.token)
-  if req.action == 'add':
+  #     % (req.function, req.place, req.token)
+  if req.function == 'add':
     resource_controller.AddTokenToPlace(req.place, req.token)
     return DoPetriNetArcResponse(True)
-  if req.action == 'remove':
+  if req.function == 'remove':
     return DoPetriNetArcResponse(
         resource_controller.RemoveTokenFromPlace(req.place, req.token))
-  if req.action == 'guard':
+  if req.function == 'guard':
     response = resource_controller.HasTokenInPlace(req.place, req.token)
     # print("Checking if resource token (%s) is in place (%s): %s"
     #       % (req.token, req.place, response))
     return DoPetriNetArcResponse(response)
-  raise rospy.ServiceException("Invalid action input: %s" % req.action)
+  if req.function == 'add_action':
+    resource_controller.AddActiveAction(req.action)
+    return DoPetriNetArcResponse(True)
+  if req.function == 'remove_action':
+    response = resource_controller.RemoveActiveAction(req.action)
+    return DoPetriNetArcResponse(response)
+  raise rospy.ServiceException("Invalid function input: %s" % req.function)
 
 def main():
   global resource_controller
