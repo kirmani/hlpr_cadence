@@ -60,7 +60,8 @@ class FinishTransition(PetriNetTransition):
     print("Finishing action: %s" % self.action_.name)
     if self.started_.HasToken(self.action_.name):
       self.started_.RemoveToken(self.action_.name)
-      ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
+      for resource in self.action_.preconditions:
+        ResourceControllerApi.AddResourceToPlace('requested_robot', resource)
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
     self.finished_.AddToken(self.action_.name)
@@ -78,9 +79,10 @@ class SeizeRobotTransition(PetriNetTransition):
   def fire(self):
     # Remove resources from requested, and put resource tokens in requested
     # place.
-    ResourceControllerApi.RemoveResourceFromPlace('requested_robot', 'floor')
-    ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
-    ResourceControllerApi.AddResourceToPlace('owned_robot', 'floor')
+    for resource in self.action_.preconditions:
+      ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
+      ResourceControllerApi.RemoveResourceFromPlace('free', resource)
+      ResourceControllerApi.AddResourceToPlace('owned_robot', resource)
 
   def activated(self):
     if not PetriNetTransition.activated(self):
@@ -100,7 +102,8 @@ class RequestRobotTransition(PetriNetTransition):
   def fire(self):
     # Place resource tokens in requested place.
     print("Requesting resources for action: %s" % self.action_.name)
-    ResourceControllerApi.AddResourceToPlace('requested_robot', 'floor')
+    for resource in self.action_.preconditions:
+      ResourceControllerApi.AddResourceToPlace('requested_robot', resource)
 
   def activated(self):
     if not self.already_requested_:
