@@ -37,10 +37,10 @@ class InterruptTransition(PetriNetTransition):
 
   def fire(self):
     print("Interrupting action: %s" % self.action_.name)
+    ResourceControllerApi.RemoveActiveAction(self.action_.name)
     self.action_.Interrupt()
     self.started_.RemoveToken(self.action_.name)
     self.interrupted_.AddToken(self.action_.name)
-    ResourceControllerApi.RemoveActiveAction(self.action_.name)
 
   def activated(self):
     if not self.started_.HasToken(self.action_.name):

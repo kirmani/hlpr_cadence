@@ -20,7 +20,8 @@ kVerbose = True
 kDebug = True
 
 kResources = ['floor']
-kPlaces = ['requested_robot', 'requested_user', 'owned_user']
+kPlaces = ['requested_robot', 'free', 'owned_user', 'owned_robot',
+           'requested_user']
 
 class ResourceControllerApi:
   @staticmethod
@@ -107,31 +108,121 @@ class YieldTransition(PetriNetTransition):
     return self.requested_user_.HasToken('floor') \
        and self.owned_robot_.HasToken('floor')
 
-class FreePlace(PetriNetPlace):
-  def __init__(self):
-    PetriNetPlace.__init__(self, 'free')
+# class FreePlace(PetriNetPlace):
+#   def __init__(self, actions):
+#     PetriNetPlace.__init__(self, 'free')
+#     self.actions_ = actions
+#
+#   def HasToken(self, token):
+#     # print('checking if free')
+#     if resource_listeners[token].Poll(self.actions_):
+#       self.AddToken(token)
+#     else:
+#       self.RemoveToken(token)
+#     return PetriNetPlace.HasToken(self, token)
+#
+# class RequestedUserPlace(PetriNetPlace):
+#   def __init__(self, actions):
+#     PetriNetPlace.__init__(self, 'requested_user')
+#     self.actions_ = actions
+#
+#   def HasToken(self, token):
+#     # print('checking if user requested')
+#     if not resource_listeners[token].Poll(self.actions_):
+#       self.AddToken(token)
+#     else:
+#       self.RemoveToken(token)
+#     return PetriNetPlace.HasToken(self, token)
 
-  def HasToken(self, token):
-    return resource_listeners[token].Poll()
+class RequestUserTransition(PetriNetTransition):
+  def __init__(self, owned_user, requested_user, resource_listeners, actions):
+    PetriNetTransition.__init__(self, 'request_user')
+    self.owned_user_ = owned_user
+    self.requested_user_ = requested_user
+    self.resource_listeners_ = resource_listeners
+    self.actions_ = actions
 
-class OwnedRobotPlace(PetriNetPlace):
-  def __init__(self):
-    PetriNetPlace.__init__(self, 'owned_robot')
+  def fire(self):
+    # Place resource tokens in requested place.
+    for resource_listener in self.resource_listeners_:
+      if not resource_listener.Poll(self.actions_) \
+          and not self.owned_user_.HasToken(resource_listener.name):
+        if kVerbose:
+          print("Requesting resource for user: %s" % resource_listener.name)
+        self.requested_user_.AddToken(resource_listener.name)
 
-  def HasToken(self, token):
-    return resource_listeners[token].Poll()
+  def activated(self):
+    for resource_listener in self.resource_listeners_:
+      if not resource_listener.Poll(self.actions_) \
+          and not self.owned_user_.HasToken(resource_listener.name):
+        return True
+    return False
+
+class SeizeUserTransition(PetriNetTransition):
+  def __init__(self, requested_user, free, owned_user, resource_listeners):
+    PetriNetTransition.__init__(self, 'seize_user')
+    self.requested_user_ = requested_user
+    self.free_ = free
+    self.owned_user_ = owned_user
+    self.resource_listeners_ = resource_listeners
+
+  def fire(self):
+    if kVerbose: print("Seizing resource for user: %s" % 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('requested_user', 'floor')
+    ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
+    ResourceControllerApi.AddResourceToPlace('owned_user', 'floor')
+    for resource_listener in self.resource_listeners_:
+      if self.requested_user_.HasToken(resource_listener.name) and \
+          self.free_.HasToken(resource_listener.name):
+        if kVerbose:
+          print("Seizing resource for user: %s" % resource_listener.name)
+        self.requested_user_.RemoveToken(resource_listener.name)
+        self.free_.RemoveToken(resource_listener.name)
+        self.owned_user_.AddToken(resource_listener.name)
+
+  def activated(self):
+    for resource_listener in self.resource_listeners_:
+      if self.requested_user_.HasToken(resource_listener.name) and \
+          self.free_.HasToken(resource_listener.name):
+        return True
+    return False
+
+class ReleaseUserTransition(PetriNetTransition):
+  def __init__(self, owned_user, free, resource_listeners, actions):
+    PetriNetTransition.__init__(self, 'release_user')
+    self.owned_user_ = owned_user
+    self.free_ = free
+    self.resource_listeners_ = resource_listeners
+    self.actions_ = actions
+
+  def fire(self):
+    for resource_listener in self.resource_listeners_:
+      if resource_listener.Poll(self.actions_) \
+          and self.owned_user_.HasToken(resource_listener.name):
+        if kVerbose:
+          print("Releasing resource for user: %s" % resource_listener.name)
+        self.owned_user_.RemoveToken(resource_listener.name)
+        self.free_.AddToken(resource_listener.name)
+
+  def activated(self):
+    for resource_listener in self.resource_listeners_:
+      if resource_listener.Poll(self.actions_) \
+          and self.owned_user_.HasToken(resource_listener.name):
+        return True
+    return False
 
 class ResourceController(PetriNet):
-  def __init__(self):
+  def __init__(self, resource_listeners):
     PetriNet.__init__(self, 'resource_controller')
     self.places_ = {}
     self.actions_ = Set()
+    self.resource_listeners_ = resource_listeners
 
     # Places.
     for place in kPlaces:
       self.places_[place] = PetriNetPlace(place)
-    self.places_['free'] = FreePlace()
-    self.places_['owned_robot'] = OwnedRobotPlace()
+    # self.places_['free'] = FreePlace(self.actions_)
+    # self.places_['requested_user'] = RequestedUserPlace(self.actions_)
 
     # Transitions.
     self.transitions_.append(
@@ -142,9 +233,24 @@ class ResourceController(PetriNet):
         YieldTransition(self.places_['requested_user'],
                                self.places_['owned_robot'],
                                self.places_['owned_user']))
+    self.transitions_.append(
+        RequestUserTransition(self.places_['owned_user'],
+                              self.places_['requested_user'],
+                              self.resource_listeners_,
+                              self.actions_))
+    self.transitions_.append(
+        SeizeUserTransition(self.places_['requested_user'],
+                            self.places_['free'],
+                            self.places_['owned_user'],
+                            self.resource_listeners_))
+    self.transitions_.append(
+        ReleaseUserTransition(self.places_['owned_user'],
+                              self.places_['free'],
+                              self.resource_listeners_,
+                              self.actions_))
 
-    # for resource in kResources:
-    #   self.places_['free'].AddToken(resource)
+    for resource_listener in self.resource_listeners_:
+      self.places_['free'].AddToken(resource_listener.name)
 
   def AddTokenToPlace(self, place, token):
     if place not in self.places_:
@@ -156,6 +262,7 @@ class ResourceController(PetriNet):
             % (token, place, str(resource_controller.GetMarking())))
 
   def HasTokenInPlace(self, place, token):
+    self.Run()
     if place not in self.places_:
       raise ValueError("Does not have place: %s" % place)
     return self.places_[place].HasToken(token)
@@ -172,7 +279,7 @@ class ResourceController(PetriNet):
 
   def GetMarking(self):
     marking = {}
-    for place in kPlaces:
+    for place in self.places_:
       marking[place] = self.places_[place].GetTokens()
     return marking
 
@@ -184,7 +291,6 @@ class ResourceController(PetriNet):
   def RemoveActiveAction(self, action):
     if kDebug:
       print("Removing active action: %s" % action)
-    self.actions_.add(action)
     if action not in self.actions_:
       return False
     self.actions_.remove(action)
@@ -214,15 +320,12 @@ def handle_do_petri_net_arc(req):
 
 def main():
   global resource_controller
-  global resource_listeners
 
-  resource_listeners = {}
+  # Add resource listeners.
+  resource_listeners = Set()
+  resource_listeners.add(FloorListener())
 
-  # Add floor listener.
-  floor_listener = FloorListener()
-  resource_listeners[floor_listener.name] = floor_listener
-
-  resource_controller = ResourceController()
+  resource_controller = ResourceController(resource_listeners)
   if kDebug:
     print("Initial marking: %s" % str(resource_controller.GetMarking()))
 

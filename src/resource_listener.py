@@ -13,7 +13,7 @@ class ResourceListener:
   def __init__(self, name):
     self.name = name
 
-  def StartListening(self):
+  def StartListening(self, actions):
     pass
 
   def Poll(self):

@@ -137,9 +137,10 @@ class FloorListener(ResourceListener):
     self.stream_ = self.open_mic_stream()
     self.floor_holding_threshold_ = 0.01
     self.error_count_ = 0
-    self.minimum_hold_time_ = 0.5 # seconds
+    self.minimum_hold_time_ = 0.2 # seconds
     self.last_update_time_ = 0
-    self.expected_volume_sampler_ = Sampler()
+    self.samplers_ = {}
+    # self.expected_volume_sampler_ = Sampler()
 
   def find_input_device(self):
     device_index = None
@@ -164,7 +165,8 @@ class FloorListener(ResourceListener):
                           frames_per_buffer=self.input_frames_per_block_)
     return stream
 
-  def Poll(self):
+  def Poll(self, actions):
+    "Returns True if the floor is free"
     try:
       block = self.stream_.read(self.input_frames_per_block_)
     except IOError, e:
@@ -173,13 +175,17 @@ class FloorListener(ResourceListener):
       print("(%d) Error recording: %s" % (self.error_count_, e))
       return
 
+    actions_hash = str(actions)
+    if actions_hash not in self.samplers_:
+      self.samplers_[actions_hash] = Sampler()
     now = time.time()
 
     # amplitude = random.uniform(0, 1)
     amplitude = self.GetRms_(block)
-    self.expected_volume_sampler_.Sample(amplitude)
+    self.samplers_[actions_hash].Sample(amplitude)
+    print(actions_hash)
 
-    if self.expected_volume_sampler_.IsConfidentValue(amplitude) > 0:
+    if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
       self.last_update_time_ = now
 
     return now - self.last_update_time_ < self.minimum_hold_time_
