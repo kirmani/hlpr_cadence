@@ -14,54 +14,12 @@ PyAudio Test
 # from resource_controller import ResourceControllerApi
 from resource_listener import ResourceListener
 from sampler import Sampler
-
 import math
 import pyaudio
 import struct
-
-# For keyboard listener.
-import termios, fcntl, sys, os, time
-
-import random
-
-# Dummy listener for debugging.
-kUseKeyboardListener = False
+import time
 
 kVerbose = True
-
-class KeyboardListener(ResourceListener):
-  def StartListening(self):
-    self.minimum_hold_time_ = 0.5 # seconds
-    self.last_update_time_ = 0
-    print("Listening for *any* keyboard input.")
-
-  def Poll(self):
-    now = time.time()
-
-    fd = sys.stdin.fileno()
-
-    oldterm = termios.tcgetattr(fd)
-    newattr = termios.tcgetattr(fd)
-    newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
-    termios.tcsetattr(fd, termios.TCSANOW, newattr)
-
-    oldflags = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags | os.O_NONBLOCK)
-    c = None
-
-    try:
-      c = sys.stdin.read(1)
-    except IOError:
-      pass
-
-    termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
-    fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
-
-    if c != None:
-      self.last_update_time_ = now
-
-    return now - self.last_update_time_ < self.minimum_hold_time_
-
 
 class FloorListener(ResourceListener):
   def __init__(self):
@@ -81,7 +39,6 @@ class FloorListener(ResourceListener):
     self.minimum_hold_time_ = 0.5 # seconds
     self.last_update_time_ = 0
     self.samplers_ = {}
-    # self.expected_volume_sampler_ = Sampler()
 
   def find_input_device(self):
     device_index = None
@@ -112,7 +69,7 @@ class FloorListener(ResourceListener):
       block = self.stream_.read(self.input_frames_per_block_)
     except IOError, e:
       # Damnit.
-      # self.error_count_ += 1
+      self.error_count_ += 1
       print("(%d) Error recording: %s" % (self.error_count_, e))
       return
 
@@ -121,7 +78,6 @@ class FloorListener(ResourceListener):
       self.samplers_[actions_hash] = Sampler()
     now = time.time()
 
-    # amplitude = random.uniform(0, 1)
     amplitude = self.GetRms_(block)
     self.samplers_[actions_hash].Sample(amplitude)
 
