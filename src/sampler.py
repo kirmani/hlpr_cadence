@@ -12,7 +12,7 @@ Sampler.
 
 import math
 
-kVerbose = True
+kVerbose = False
 
 class Sampler:
   def __init__(self):
@@ -60,11 +60,7 @@ class Sampler:
     self.variance_ = self.m2_ / (self.num_samples_ - 1) \
         if self.num_samples_ > 1 else 0
     self.population_variance_ = self.m2_ / (self.num_samples_)
-
-    is_confident = self.IsConfidentValue(value)
-    if is_confident != 0:
-      self.error_count_ += 1
-      # print("Error ratio: %.9f" % (float(self.error_count_) / float(self.num_samples_)))
+    # print("Error ratio: %.9f" % (float(self.error_count_) / float(self.num_samples_)))
 
     # print("Expectation: %.9f" % self.expectation_)
     # print("Sample Variance: %.9f" % self.variance_)

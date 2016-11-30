@@ -137,7 +137,7 @@ class FloorListener(ResourceListener):
     self.stream_ = self.open_mic_stream()
     self.floor_holding_threshold_ = 0.01
     self.error_count_ = 0
-    self.minimum_hold_time_ = 0.2 # seconds
+    self.minimum_hold_time_ = 0.5 # seconds
     self.last_update_time_ = 0
     self.samplers_ = {}
     # self.expected_volume_sampler_ = Sampler()
@@ -183,12 +183,8 @@ class FloorListener(ResourceListener):
     # amplitude = random.uniform(0, 1)
     amplitude = self.GetRms_(block)
     self.samplers_[actions_hash].Sample(amplitude)
-    print(actions_hash)
 
-    if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
-      self.last_update_time_ = now
-
-    return now - self.last_update_time_ < self.minimum_hold_time_
+    return self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0
 
   def GetRms_(self, block):
     # We will get one short out for each two chars in the string.
