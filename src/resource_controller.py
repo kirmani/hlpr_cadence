@@ -108,32 +108,6 @@ class YieldTransition(PetriNetTransition):
     return self.requested_user_.HasToken('floor') \
        and self.owned_robot_.HasToken('floor')
 
-# class FreePlace(PetriNetPlace):
-#   def __init__(self, actions):
-#     PetriNetPlace.__init__(self, 'free')
-#     self.actions_ = actions
-#
-#   def HasToken(self, token):
-#     # print('checking if free')
-#     if resource_listeners[token].Poll(self.actions_):
-#       self.AddToken(token)
-#     else:
-#       self.RemoveToken(token)
-#     return PetriNetPlace.HasToken(self, token)
-#
-# class RequestedUserPlace(PetriNetPlace):
-#   def __init__(self, actions):
-#     PetriNetPlace.__init__(self, 'requested_user')
-#     self.actions_ = actions
-#
-#   def HasToken(self, token):
-#     # print('checking if user requested')
-#     if not resource_listeners[token].Poll(self.actions_):
-#       self.AddToken(token)
-#     else:
-#       self.RemoveToken(token)
-#     return PetriNetPlace.HasToken(self, token)
-
 class RequestUserTransition(PetriNetTransition):
   def __init__(self, owned_user, requested_user, resource_listeners, actions):
     PetriNetTransition.__init__(self, 'request_user')
@@ -221,8 +195,6 @@ class ResourceController(PetriNet):
     # Places.
     for place in kPlaces:
       self.places_[place] = PetriNetPlace(place)
-    # self.places_['free'] = FreePlace(self.actions_)
-    # self.places_['requested_user'] = RequestedUserPlace(self.actions_)
 
     # Transitions.
     self.transitions_.append(
@@ -297,8 +269,6 @@ class ResourceController(PetriNet):
     return True
 
 def handle_do_petri_net_arc(req):
-  # print "Received: (%s, %s, %s)" \
-  #     % (req.function, req.place, req.token)
   if req.function == 'add':
     resource_controller.AddTokenToPlace(req.place, req.token)
     return DoPetriNetArcResponse(True)
@@ -307,8 +277,6 @@ def handle_do_petri_net_arc(req):
         resource_controller.RemoveTokenFromPlace(req.place, req.token))
   if req.function == 'guard':
     response = resource_controller.HasTokenInPlace(req.place, req.token)
-    # print("Checking if resource token (%s) is in place (%s): %s"
-    #       % (req.token, req.place, response))
     return DoPetriNetArcResponse(response)
   if req.function == 'add_action':
     resource_controller.AddActiveAction(req.action)
