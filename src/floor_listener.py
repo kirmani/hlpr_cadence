@@ -17,7 +17,6 @@ from sampler import Sampler
 
 import math
 import pyaudio
-import rospy
 import struct
 
 # For keyboard listener.
@@ -29,64 +28,6 @@ import random
 kUseKeyboardListener = False
 
 kVerbose = True
-
-# class RequestUserTransition(PetriNetTransition):
-#   def __init__(self, listener):
-#     PetriNetTransition.__init__(self, 'request_user')
-#     self.listener_ = listener
-#
-#   def fire(self):
-#     # Place resource tokens in requested place.
-#     if kVerbose: print("Requesting resource for user: %s" % 'floor')
-#     ResourceControllerApi.AddResourceToPlace('requested_user', 'floor')
-#
-#   def activated(self):
-#     return self.listener_.Poll() and \
-#         not ResourceControllerApi.CheckGuard('owned_user', 'floor')
-#
-# class SeizeUserTransition(PetriNetTransition):
-#   def __init__(self):
-#     PetriNetTransition.__init__(self, 'seize_user')
-#
-#   def fire(self):
-#     if kVerbose: print("Seizing resource for user: %s" % 'floor')
-#     ResourceControllerApi.RemoveResourceFromPlace('requested_user', 'floor')
-#     ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
-#     ResourceControllerApi.AddResourceToPlace('owned_user', 'floor')
-#
-#   def activated(self):
-#     return ResourceControllerApi.CheckGuard('requested_user', 'floor') and \
-#         ResourceControllerApi.CheckGuard('free', 'floor')
-#
-# class ReleaseUserTransition(PetriNetTransition):
-#   def __init__(self, listener):
-#     PetriNetTransition.__init__(self, 'release_user')
-#     self.listener_ = listener
-#
-#   def fire(self):
-#     if kVerbose: print("Releasing resource for user: %s" % 'floor')
-#     ResourceControllerApi.RemoveResourceFromPlace('owned_user', 'floor')
-#     ResourceControllerApi.AddResourceToPlace('free', 'floor')
-#
-#   def activated(self):
-#     return not self.listener_.Poll() and \
-#         ResourceControllerApi.CheckGuard('owned_user', 'floor')
-#
-# class ResourceListenerController(PetriNet):
-#   def __init__(self, listener):
-#     PetriNet.__init__(self, 'floor_controller')
-#     self.listener_ = listener
-#
-#     self.transitions_.append(RequestUserTransition(self.listener_))
-#     self.transitions_.append(SeizeUserTransition())
-#     self.transitions_.append(ReleaseUserTransition(self.listener_))
-#
-#   def Run(self):
-#     self.listener_.StartListening()
-#     PetriNet.Run(self)
-#
-#   def EndCondition(self):
-#     return rospy.is_shutdown()
 
 class KeyboardListener(ResourceListener):
   def StartListening(self):
