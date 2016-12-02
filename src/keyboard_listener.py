@@ -9,6 +9,8 @@
 """
 Keyboard listener.
 """
+from resource_listener import ResourceListener
+
 import fcntl
 import os
 import sys
