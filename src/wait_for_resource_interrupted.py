@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 
 """
-Wait for resource to be free.
+Wait for resource to be interrupted.
 """
 
 from action import Action
@@ -24,7 +24,6 @@ class WaitForResourceInterrupted(Action):
 
     def Interrupt(self):
         self.interrupted_ = True
-        self.on_interrupt_(self)
 
     def IsFinished(self):
         return self.interrupted_

@@ -13,15 +13,17 @@ Speak action.
 from action import Action
 from action_process import ActionProcess
 from speak import Speak
+from wait_for_resource_free import WaitForResourceFree
+from wait_for_resource_interrupted import WaitForResourceInterrupted
 
 class AskAboutKetchup(Action):
   def __init__(self):
     Action.__init__(self, 'ask_about_ketchup', [], {}, {})
 
   def Task(self):
-    speak = Speak(150, 50, "please tell me about this ketchup")
-    self.ask_about_ketchup_= ActionProcess(
-            'ask_about_ketchup_action_process',
-            speak)
-    speak.OnInterrupt(self.ask_about_ketchup_.Run)
-    self.ask_about_ketchup_.Run()
+    ActionProcess('ask_about_ketchup_speak',
+        Speak(150, 50, "please tell me about this ketchup")).Run()
+    ActionProcess('ask_about_ketchup_wfri',
+        WaitForResourceInterrupted('floor')).Run()
+    ActionProcess('ask_about_ketchup_wfrf',
+        WaitForResourceFree('floor')).Run()
