@@ -11,8 +11,6 @@ Speak action.
 """
 
 from action import Action
-from multiprocessing import Process
-import signal
 import subprocess
 
 class Speak(Action):
