@@ -143,10 +143,6 @@ class SeizeUserTransition(PetriNetTransition):
     self.resource_listeners_ = resource_listeners
 
   def fire(self):
-    if kVerbose: print("Seizing resource for user: %s" % 'floor')
-    ResourceControllerApi.RemoveResourceFromPlace('requested_user', 'floor')
-    ResourceControllerApi.RemoveResourceFromPlace('free', 'floor')
-    ResourceControllerApi.AddResourceToPlace('owned_user', 'floor')
     for resource_listener in self.resource_listeners_:
       if self.requested_user_.HasToken(resource_listener.name) and \
           self.free_.HasToken(resource_listener.name):
