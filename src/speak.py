@@ -14,7 +14,6 @@ from action import Action
 from multiprocessing import Process
 import signal
 import subprocess
-import os
 
 class Speak(Action):
   def __init__(self, rate, pitch, text):
