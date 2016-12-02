@@ -27,7 +27,7 @@ class ObjectListener(ResourceListener):
 
 
   def Poll(self):
-    print('polling bfor resource: %s': self.object_name_)
+    print('polling for resource: %s' % self.object_name_)
     now = time.time()
 
     fd = sys.stdin.fileno()

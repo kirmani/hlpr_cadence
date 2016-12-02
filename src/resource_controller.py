@@ -11,6 +11,8 @@ Timed Petri net for resource controller.
 """
 
 from floor_listener import FloorListener
+from object_listener import ObjectListener
+
 from hlpr_cadence.srv import *
 from petri_net import *
 from sets import Set
@@ -292,6 +294,7 @@ def main():
   # Add resource listeners.
   resource_listeners = Set()
   resource_listeners.add(FloorListener())
+  resource_listeners.add(ObjectListener('ketchup'))
 
   resource_controller = ResourceController(resource_listeners)
   if kDebug:

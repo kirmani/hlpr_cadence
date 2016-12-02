@@ -17,5 +17,7 @@ class ResourceListener:
     pass
 
   def Poll(self):
+    """
+    Return True when object is 'free', False otherwise
+    """
     return False
-
