@@ -23,7 +23,7 @@ class AskAboutObject(Action):
 
   def Task(self):
     ActionProcess('',
-        Speak(150, 50, "please tell me about the " + object_name)).Run()
+        Speak(150, 50, "please tell me about " + self.object_name_)).Run()
     ActionProcess('',
         WaitForResourceInterrupted('floor')).Run()
     ActionProcess('',

@@ -11,10 +11,10 @@ The "hello world" example of interruptable actions.
 """
 
 from action_process import ActionProcess
-from ask_about_ketchup import AskAboutKetchup
+from ask_about_object import AskAboutObject
 
 def main():
-  ActionProcess('ask_about_ketchup', AskAboutKetchup()).Run()
+  ActionProcess('', AskAboutObject('ketchup')).Run()
 
 if __name__ == '__main__':
   main()
