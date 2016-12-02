@@ -21,7 +21,7 @@ class Action:
     self.preconditions = preconditions
     self.postconditions = postconditions
     self.process_ = Process(target = self.TaskWrapper_)
-    self.on_interupt_ = None
+    self.on_interrupt_ = None
 
   def Task(self):
     pass
@@ -31,7 +31,8 @@ class Action:
 
   def Interrupt(self):
     os.killpg(os.getpgid(self.process_.pid), signal.SIGTERM)
-    self.on_interrupt_(self)
+    if (self.on_interrupt_):
+      self.on_interrupt_(self)
 
   def OnInterrupt(self, func):
     self.on_interrupt_ = func
