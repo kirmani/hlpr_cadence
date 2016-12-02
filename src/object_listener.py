@@ -19,5 +19,4 @@ class ObjectListener(ResourceListener):
 
   def Poll(self, actions):
     "TODO(taylor): make this return True and False correctly"
-    print('polling for resource: %s' % self.object_name_)
     return True

@@ -7,7 +7,7 @@
 # Distributed under terms of the MIT license.
 
 """
-The "hello world" example of interruptable actions.
+Test file for object listener.
 """
 
 from action_process import ActionProcess
