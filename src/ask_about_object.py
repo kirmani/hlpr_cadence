@@ -16,14 +16,15 @@ from speak import Speak
 from wait_for_resource_free import WaitForResourceFree
 from wait_for_resource_interrupted import WaitForResourceInterrupted
 
-class AskAboutKetchup(Action):
-  def __init__(self):
-    Action.__init__(self, 'ask_about_ketchup', [], {}, {})
+class AskAboutObject(Action):
+  def __init__(self, object_name):
+    Action.__init__(self, 'ask_about_' + object_name, [], {}, {})
+    self.object_name_ = object_name
 
   def Task(self):
-    ActionProcess('ask_about_ketchup_speak',
-        Speak(150, 50, "please tell me about this ketchup")).Run()
-    ActionProcess('ask_about_ketchup_wfri',
+    ActionProcess('',
+        Speak(150, 50, "please tell me about the " + object_name)).Run()
+    ActionProcess('',
         WaitForResourceInterrupted('floor')).Run()
-    ActionProcess('ask_about_ketchup_wfrf',
+    ActionProcess('',
         WaitForResourceFree('floor')).Run()

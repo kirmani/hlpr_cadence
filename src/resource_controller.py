@@ -291,6 +291,8 @@ def main():
   resource_listeners = Set()
   resource_listeners.add(FloorListener())
   resource_listeners.add(ObjectListener('ketchup'))
+  resource_listeners.add(ObjectListener('mustard'))
+  resource_listeners.add(ObjectListener('mayo'))
 
   resource_controller = ResourceController(resource_listeners)
   if kDebug:
