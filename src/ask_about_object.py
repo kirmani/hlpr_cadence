@@ -28,3 +28,10 @@ class AskAboutObject(Action):
         WaitForResourceInterrupted('floor')).Run()
     ActionProcess('',
         WaitForResourceFree('floor')).Run()
+
+def main():
+  ActionProcess('', AskAboutObject('ketchup')).Run()
+
+if __name__ == '__main__':
+  main()
+
