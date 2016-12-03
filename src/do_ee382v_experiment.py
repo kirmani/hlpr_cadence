@@ -13,6 +13,7 @@ Speak action.
 from action import Action
 from action_process import ActionProcess
 from ask_about_object import AskAboutObject
+from wait_for_resource_interrupted import WaitForResourceInterrupted
 import random
 
 class DoEE382VExperiment(Action):
@@ -22,8 +23,11 @@ class DoEE382VExperiment(Action):
     random.shuffle(self.objects_)
 
   def Task(self):
+    print("wait a little bit, then say something to begin")
+    ActionProcess('',
+        WaitForResourceInterrupted('floor')).Run()
     for obj in self.objects_:
-      ActionProcess('', AskAboutObject(obj)).Run()
+        ActionProcess('', AskAboutObject(obj)).Run()
 
 def main():
   ActionProcess('', DoEE382VExperiment()).Run()
