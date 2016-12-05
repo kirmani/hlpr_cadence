@@ -21,3 +21,6 @@ class ResourceListener:
     Return True when object is 'free', False otherwise
     """
     return False
+
+  def OnShutdown(self):
+    pass

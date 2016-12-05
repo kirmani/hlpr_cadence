@@ -14,12 +14,16 @@ PyAudio Test
 # from resource_controller import ResourceControllerApi
 from resource_listener import ResourceListener
 from sampler import Sampler
+import json
 import math
+import os
 import pyaudio
 import struct
 import time
 
 kVerbose = True
+kSensesFile = os.path.join(os.path.dirname(__file__),
+            'data/senses.json')
 
 class FloorListener(ResourceListener):
   def __init__(self):
@@ -38,7 +42,21 @@ class FloorListener(ResourceListener):
     self.error_count_ = 0
     self.minimum_hold_time_ = 0.05 # seconds
     self.last_update_time_ = 0
-    self.samplers_ = {}
+    self.samplers_ = self.LoadSenses_()
+
+  def LoadSenses_(self):
+    try:
+      with open(kSensesFile, 'r+') as f:
+        senses_file = json.load(fp=f)
+      samplers = {}
+      for actions_hash in senses_file:
+        save_data = senses_file[actions_hash]
+        samplers[actions_hash] = Sampler()
+        samplers[actions_hash].LoadFromSaveData(save_data)
+      return samplers
+    except IOError:
+      print("Error loading senses file.")
+      return {}
 
   def find_input_device(self):
     device_index = None
@@ -73,7 +91,7 @@ class FloorListener(ResourceListener):
       print("(%d) Error recording: %s" % (self.error_count_, e))
       return
 
-    actions_hash = str(actions)
+    actions_hash = ', '.join(actions)
     if actions_hash not in self.samplers_:
       self.samplers_[actions_hash] = Sampler()
     now = time.time()
@@ -101,3 +119,17 @@ class FloorListener(ResourceListener):
       sum_squares += n * n
 
     return math.sqrt(sum_squares / count)
+
+  def OnShutdown(self):
+    save_data = {}
+    for actions_hash in self.samplers_:
+      save_data[actions_hash] = self.samplers_[actions_hash].GetSaveData()
+    self.WriteSenses_(save_data)
+    if kVerbose:
+      print("saving to long term memory")
+      print(save_data)
+
+  def WriteSenses_(self, data):
+    j = json.dumps(data, indent=4)
+    with open(kSensesFile, 'w') as f:
+      f.write(j)

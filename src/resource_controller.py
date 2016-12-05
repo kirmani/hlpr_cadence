@@ -284,8 +284,15 @@ def handle_do_petri_net_arc(req):
     return DoPetriNetArcResponse(response)
   raise rospy.ServiceException("Invalid function input: %s" % req.function)
 
+def OnShutdown():
+  global resource_listeners
+  for resource_listener in resource_listeners:
+    resource_listener.OnShutdown()
+  print('shutting down!')
+
 def main():
   global resource_controller
+  global resource_listeners
 
   # Add resource listeners.
   resource_listeners = Set()
@@ -301,6 +308,7 @@ def main():
   rospy.init_node('do_petri_net_arc')
   s = rospy.Service('do_petri_net_arc', DoPetriNetArc, handle_do_petri_net_arc)
   print("Ready to do petri net arcs.")
+  rospy.on_shutdown(OnShutdown)
   rospy.spin()
 
 if __name__ == '__main__':

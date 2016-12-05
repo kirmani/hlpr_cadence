@@ -51,6 +51,21 @@ class Sampler:
   def SampleVariance(self):
     return self.variance_
 
+  def GetSaveData(self):
+    return {
+        'expectation': self.expectation_,
+        'm2': self.m2_,
+        'num_samples': self.num_samples_}
+
+  def LoadFromSaveData(self, data):
+    self.started_ = True
+    self.expectation_ = data['expectation']
+    self.m2_ = data['m2']
+    self.num_samples_ = data['num_samples']
+    self.variance_ = self.m2_ / (self.num_samples_ - 1) \
+        if self.num_samples_ > 1 else 0
+    self.population_variance_ = self.m2_ / (self.num_samples_)
+
   def Sample(self, value):
     self.num_samples_ += 1
     error = value - self.expectation_

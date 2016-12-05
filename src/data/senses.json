@@ -1,0 +1,67 @@
+{
+    "": {
+        "num_samples": 71, 
+        "expectation": 0.0006381471984652758, 
+        "m2": 8.170943425979506e-06
+    }, 
+    "wait_for_resource_interrupted, ask_about_mayo, do_ee382v_experiment": {
+        "num_samples": 98, 
+        "expectation": 0.0010772930708322888, 
+        "m2": 0.00013653534773630478
+    }, 
+    "ask_about_mayo, do_ee382v_experiment": {
+        "num_samples": 67, 
+        "expectation": 0.0010803433644318283, 
+        "m2": 6.379333052066793e-05
+    }, 
+    "speech, ask_about_mayo, do_ee382v_experiment": {
+        "num_samples": 81, 
+        "expectation": 0.0007635853894113634, 
+        "m2": 9.96527148159678e-06
+    }, 
+    "wait_for_resource_interrupted, do_ee382v_experiment": {
+        "num_samples": 145, 
+        "expectation": 0.001154952962918537, 
+        "m2": 0.0001967083321740604
+    }, 
+    "do_ee382v_experiment, ask_about_ketchup": {
+        "num_samples": 70, 
+        "expectation": 0.0005592097612434145, 
+        "m2": 1.2218059922425126e-05
+    }, 
+    "do_ee382v_experiment": {
+        "num_samples": 35, 
+        "expectation": 0.0006741753678202208, 
+        "m2": 1.3878669425607568e-06
+    }, 
+    "wait_for_resource_interrupted, do_ee382v_experiment, ask_about_mustard": {
+        "num_samples": 100, 
+        "expectation": 0.0016364547757723718, 
+        "m2": 0.0002103583245771718
+    }, 
+    "wait_for_resource_interrupted, do_ee382v_experiment, ask_about_ketchup": {
+        "num_samples": 114, 
+        "expectation": 0.001015276935602259, 
+        "m2": 0.00017212026988792857
+    }, 
+    "speech, do_ee382v_experiment, ask_about_mustard": {
+        "num_samples": 99, 
+        "expectation": 0.001472135740413701, 
+        "m2": 0.00013732215609747237
+    }, 
+    "do_ee382v_experiment, ask_about_mustard": {
+        "num_samples": 67, 
+        "expectation": 0.0015932873556315109, 
+        "m2": 0.00015052361284805148
+    }, 
+    "speech": {
+        "num_samples": 667, 
+        "expectation": 0.0007205899909287033, 
+        "m2": 8.993977574183173e-05
+    }, 
+    "speech, do_ee382v_experiment, ask_about_ketchup": {
+        "num_samples": 89, 
+        "expectation": 0.0005344910303411081, 
+        "m2": 9.729518532164126e-06
+    }
+}
