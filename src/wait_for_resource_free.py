@@ -15,7 +15,7 @@ from action import Action
 class WaitForResourceFree(Action):
     def __init__(self, resource):
         Action.__init__(self, 'wait_for_resource_free', [resource],
-                {},
+                {resource: True},
                 {resource: True})
 
     def Start(self):
