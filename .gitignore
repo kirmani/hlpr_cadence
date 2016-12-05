@@ -44,5 +44,8 @@ qtcreator-*
 # Emacs
 .#*
 
+# Ignore data.
+src/data
+
 # Catkin custom files
 CATKIN_IGNORE
