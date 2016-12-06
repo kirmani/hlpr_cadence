@@ -88,8 +88,6 @@ class SeizeRobotTransition(PetriNetTransition):
       ResourceControllerApi.AddResourceToPlace('owned_robot', resource)
 
   def activated(self):
-    if not PetriNetTransition.activated(self):
-      return False
     for resource in self.action_.preconditions:
       if not (ResourceControllerApi.CheckGuard('requested_robot', resource)
               and ResourceControllerApi.CheckGuard('free', resource)):

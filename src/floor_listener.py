@@ -27,20 +27,26 @@ kSensesFile = os.path.join(os.path.dirname(__file__),
 
 class FloorListener(ResourceListener):
   def __init__(self):
+    self.active_ = True
+    minimum_block_time = 0.05
+    self.minimum_free_blocks_ = 4 if self.active_ else 1
+    self.minimum_hold_blocks_ = 1 if self.active_ else 4
+    self.minimum_free_time_ = minimum_block_time * self.minimum_free_blocks_
+    self.minimum_hold_time_ = minimum_block_time * self.minimum_hold_blocks_
+    self.holding_ = False
+
     # constants
     ResourceListener.__init__(self, 'floor')
     self.format_ = pyaudio.paInt16
     self.channels_ = 2
     self.rate_ = 44100
-    input_block_time = 0.05  # seconds
-    self.input_frames_per_block_ = int(self.rate_ * input_block_time)
+    self.input_frames_per_block_ = int(self.rate_ * minimum_block_time)
     self.short_normalize_ = (1.0 / 32768.0)
 
     self.pa_ = pyaudio.PyAudio()
     self.stream_ = self.open_mic_stream()
     self.floor_holding_threshold_ = 0.01
     self.error_count_ = 0
-    self.minimum_hold_time_ = 0.05 # seconds
     self.last_update_time_ = 0
     self.samplers_ = self.LoadSenses_()
 
@@ -84,7 +90,12 @@ class FloorListener(ResourceListener):
   def Poll(self, actions):
     "Returns True if the floor is free"
     try:
-      block = self.stream_.read(self.input_frames_per_block_)
+      num_frames = self.input_frames_per_block_
+      if self.holding_:
+        num_frames *= self.minimum_hold_blocks_
+      else:
+        num_frames *= self.minimum_free_blocks_
+      block = self.stream_.read(num_frames)
     except IOError, e:
       # Damnit.
       self.error_count_ += 1
@@ -100,10 +111,25 @@ class FloorListener(ResourceListener):
     self.samplers_[actions_hash].Sample(amplitude)
 
     # Check if we got a valid most recent value.
-    if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
-      self.last_update_time_ = now
+    if not self.holding_:
+      # Floor is free.
+      if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
+        self.last_update_time_ = now
 
-    return now - self.last_update_time_ < self.minimum_hold_time_
+      # print("user doesn't have floor")
+      if now - self.last_update_time_ > self.minimum_free_time_:
+        self.holding_ = True
+        self.last_update_time_ = now
+    else:
+      if self.samplers_[actions_hash].IsConfidentValue(amplitude) != 0:
+        self.last_update_time_ = now
+
+      # print("user has floor")
+      if now - self.last_update_time_ > self.minimum_hold_time_:
+        self.holding_ = False
+        self.last_update_time_ = now
+
+    return not self.holding_
 
   def GetRms_(self, block):
     # We will get one short out for each two chars in the string.
