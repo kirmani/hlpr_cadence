@@ -19,7 +19,7 @@ import random
 class DoEE382VExperiment(Action):
   def __init__(self):
     Action.__init__(self, 'do_ee382v_experiment', [], {}, {})
-    self.objects_ = ['ketchup', 'mustard', 'mayo']
+    self.objects_ = ['mug', 'banana', 'bowl']
     random.shuffle(self.objects_)
 
   def Task(self):
