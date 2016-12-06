@@ -301,6 +301,7 @@ def main():
   resource_listeners.add(ObjectListener('mustard'))
   resource_listeners.add(ObjectListener('mayo'))
 
+
   resource_controller = ResourceController(resource_listeners)
   if kDebug:
     print("Initial marking: %s" % str(resource_controller.GetMarking()))
