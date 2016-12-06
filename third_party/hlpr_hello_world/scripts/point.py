@@ -173,7 +173,6 @@ def main():
 	# Execute SMACH plan
  	outcome = sm.execute()
 	print outcome
-	rospy.spin()
 	sis.stop()
 
 
