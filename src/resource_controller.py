@@ -11,6 +11,7 @@ Timed Petri net for resource controller.
 """
 
 from floor_listener import FloorListener
+from floor_factor_listener import FloorFactorListener
 from object_listener import ObjectListener
 
 from hlpr_cadence.srv import *
@@ -291,26 +292,28 @@ def OnShutdown():
   print('shutting down!')
 
 def main():
-  global resource_controller
-  global resource_listeners
+	global resource_controller
+	global resource_listeners
 
-  # Add resource listeners.
-  resource_listeners = Set()
-  resource_listeners.add(FloorListener())
-  resource_listeners.add(ObjectListener('mug'))
-  resource_listeners.add(ObjectListener('banana'))
-  resource_listeners.add(ObjectListener('bowl'))
+	# Add resource listeners.
+	resource_listeners = Set()
+	floor_listener = FloorListener()
+	resource_listeners.add(floor_listener)
+	resource_listeners.add(FloorFactorListener(floor_listener))
+	resource_listeners.add(ObjectListener('mug'))
+	resource_listeners.add(ObjectListener('banana'))
+	resource_listeners.add(ObjectListener('bowl'))
 
 
-  resource_controller = ResourceController(resource_listeners)
-  if kDebug:
-    print("Initial marking: %s" % str(resource_controller.GetMarking()))
+	resource_controller = ResourceController(resource_listeners)
+	if kDebug:
+		print("Initial marking: %s" % str(resource_controller.GetMarking()))
 
-  rospy.init_node('do_petri_net_arc')
-  s = rospy.Service('do_petri_net_arc', DoPetriNetArc, handle_do_petri_net_arc)
-  print("Ready to do petri net arcs.")
-  rospy.on_shutdown(OnShutdown)
-  rospy.spin()
+	rospy.init_node('do_petri_net_arc')
+	s = rospy.Service('do_petri_net_arc', DoPetriNetArc, handle_do_petri_net_arc)
+	print("Ready to do petri net arcs.")
+	rospy.on_shutdown(OnShutdown)
+	rospy.spin()
 
 if __name__ == '__main__':
   main()
