@@ -14,7 +14,7 @@ from action_process import ActionProcess
 from point_at_object import PointAtObject
 
 def main():
-  point_at_object_action = PointAtObject('ketchup')
+  point_at_object_action = PointAtObject('mug')
   action_process = ActionProcess('point_at_ketchup_action_process',
       point_at_object_action)
   action_process.Run()

@@ -11,7 +11,10 @@ Point at object.
 """
 
 from action import Action
+import subprocess
 import time
+
+
 
 class PointAtObject(Action):
 	def __init__(self, object_name):
@@ -23,6 +26,8 @@ class PointAtObject(Action):
 
 	def Task(self):
 		"""TODO(taylor): Do point at object"""
-		time.sleep(4)
-		print("pointing at object: %s" % self.object_name_)
-		pass
+		#time.sleep(4)
+		cmd = ['python','../third_party/hlpr_hello_world/scripts/point.py',self.object_name_]
+		proc = subprocess.Popen(cmd).wait()
+		
+		print("pointed at object: %s" % self.object_name_)
