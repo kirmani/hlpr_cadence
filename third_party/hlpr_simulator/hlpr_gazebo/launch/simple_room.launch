@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Spawns an IKEA wooden kitchen countertop -->
+    <!--node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find hlpr_gazebo)/objects/kitchen_counter.urdf -model table -x 2.3 -y 2.0 -z 0.05" respawn="false" output="screen" /-->
+    <!--node name="spawn_cafe"  pkg="gazebo_ros" type="spawn_model" args="-sdf -file /home/labmember/.gazebo/models/cafe/model.sdf -model cafe -x 1.1 -y 1.7 -z 0.00" output="screen" /-->
+     <!-- Spawns an IKEA wooden kitchen countertop -->
+    <node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find hlpr_gazebo)/objects/kitchen_counter.urdf -model table -x -0.2 -y 3.753 -z 0.05 -yaw 1.5707" respawn="false" output="screen" />
+
+    <!--node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-sdf -file /home/labmember/.gazebo/models/cafe_table/model-1_4.sdf -model table -x 2.3 -y 2.0 -z 0.2" output="screen" /-->
+    
+</launch>
+
+

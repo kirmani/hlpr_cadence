@@ -1,0 +1,3 @@
+ - builder: doxygen
+   name: rail_demo
+   output_dir: python_doc

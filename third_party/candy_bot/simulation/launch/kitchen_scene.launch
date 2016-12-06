@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Spawns an IKEA wooden kitchen countertop -->
+    <!--node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find hlpr_gazebo)/objects/kitchen_counter.urdf -model table -x 2.3 -y 2.0 -z 0.05" respawn="false" output="screen" /-->
+    <!--node name="spawn_cafe"  pkg="gazebo_ros" type="spawn_model" args="-sdf -file /home/labmember/.gazebo/models/cafe/model.sdf -model cafe -x 1.1 -y 1.7 -z 0.00" output="screen" /-->
+     <!-- Spawns an IKEA wooden kitchen countertop -->
+    <!--node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find hlpr_gazebo)/objects/kitchen_counter.urdf -model table -x -0.36 -y 3.553 -z 0.05 -yaw 1.5707" respawn="false" output="screen" /-->
+
+    <!--node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-sdf -file /home/labmember/.gazebo/models/cafe_table/model-1_4.sdf -model table -x 2.3 -y 2.0 -z 0.2" output="screen" /-->
+    <!--node name="spawn_candy"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find simulation)/objects/candy.urdf -model candy -x -0.378 -y 3.675 -z 0.993422" output="screen" />
+    <node name="spawn_bowl"  pkg="gazebo_ros" type="spawn_model" args="-sdf -file /home/labmember/.gazebo/models/bowl/model-1_4.sdf -model bowl -x -0.278 -y 3.275 -z 1.0" output="screen" /-->
+     
+      <node name="spawn_ycb_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/table.urdf -model ycb_table -x -0.21 -y 3.353 -z 0.0 -yaw 1.5707" output="screen" />
+
+      <node name="spawn_bowl"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/bowl.urdf -model bowl -x -0.485 -y 2.726 -z 1.75" output="screen" />
+     <node name="spawn_mug"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/mug.urdf -model mug -x -0.204 -y 2.985 -z 1.75" output="screen" />
+      <node name="spawn_apple"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/apple.urdf -model apple -x -0.472 -y 3.163 -z 1.75" output="screen" />
+      <node name="spawn_banana"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/banana.urdf -model banana -x -0.247 -y 3.232 -z 1.75" output="screen" />
+      <!--node name="spawn_orange"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/orange.urdf -model orange -x -0.474 -y 2.969 -z 1.75" output="screen" /-->
+      <!--node name="spawn_peach"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/peach.urdf -model peach -x -0.221 -y 2.949 -z 1.75" output="screen" /-->
+      <!--node name="spawn_pear"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find ycb_object_models)/models/urdf/pear.urdf -model pear -x -0.221 -y 2.749 -z 1.75" output="screen" /-->
+</launch>
+
+

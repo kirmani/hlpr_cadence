@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<robot name="cube_candy">
+  <link name="candy">
+    <inertial>
+      <origin
+        xyz="0.0 0.0 0.0"
+        rpy="0 0 0" />
+      <mass value="2.0" />
+      <inertia  ixx="0.000005" ixy="0.0"  ixz="0.0"  iyy="0.000005"  iyz="0.0"  izz="0.000005" />
+    </inertial>
+    <visual>
+      <origin xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.05 0.05 0.05" />
+      </geometry>
+       <material name="red">
+        <color rgba=".8 0 .1 1"/>
+      </material>
+    </visual>
+    <collision>
+     <origin
+        xyz="0.0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <box size="0.05 0.05 0.05" />
+      </geometry>
+      <contact_coefficients mu="2"/>
+    </collision>
+  </link>
+  <gazebo reference="cube_candy">
+    <material>Gazebo/Red</material>
+  </gazebo>
+</robot>

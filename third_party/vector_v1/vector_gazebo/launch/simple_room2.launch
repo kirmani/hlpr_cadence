@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Spawns square room  -->
+    <node name="spawn_room" pkg="gazebo_ros" type="spawn_model" args="-sdf -file $(find hlpr_gazebo)/objects/sdf/basicRoom.sdf -model room" respawn="false" output="screen" /> 
+
+    <!-- Spawns an IKEA wooden kitchen countertop -x 1.2 -y 0.0 -z 0.05 -->
+    <node name="spawn_table"  pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find hlpr_gazebo)/objects/kitchen_counter.urdf -model table -x 2.3 -y 2.0 -z 0.05" respawn="false" output="screen" /> 
+
+    <!-- Spawns a simple purple jar -->
+    <include file="$(find simulation)/launch/spawn_cylinder.launch"/>  
+
+</launch>
+
+

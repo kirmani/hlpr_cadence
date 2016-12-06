@@ -1,0 +1,27 @@
+<robot name="cube">
+  <link name="cube_link">
+    <inertial>
+      <origin xyz="0 0 0" /> 
+      <mass value="1.0" />
+      <inertia  ixx="1.0" ixy="0.0"  ixz="0.0"  iyy="100.0"  iyz="0.0"  izz="1.0" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ycb_object_models/models/stl/cube.stl" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ycb_object_models/models/stl/cube.stl" />
+      </geometry>
+    </collision>
+  </link>
+  <gazebo reference="cube_link">
+    <mu1>1</mu1>
+    <mu2>1</mu2>
+    <fdir1 value = "1 0 0"/>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+</robot>
