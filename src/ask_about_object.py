@@ -31,7 +31,7 @@ class AskAboutObject(Action):
                 {},
                 {})
         self.active_ = False
-        self.wait_time_ = 2.0 if self.active_ else 4.0
+        self.wait_time_ = 1.0 if self.active_ else 4.0
 
     def Task(self):
         bowl_phrases = [" is empty", " is blue", " can hold things", " can hold food", " can be full", " can hold soup"]
