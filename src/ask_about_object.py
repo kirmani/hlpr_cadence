@@ -27,9 +27,9 @@ class AskAboutObject(Action):
 	def __init__(self, object_name):
 		self.object_name_ = object_name
 		resource_name = 'object_' + object_name
-		Action.__init__(self, 'ask_about_' + resource_name, [resource_name],
-                {resource_name: True},
-                {resource_name: True})
+		Action.__init__(self, 'ask_about_' + resource_name, [],
+                {},
+                {})
 
 	def Task(self):
 		bowl_phrases = [" is empty", " is blue", " can hold things", " can hold food", " can be full", " can hold soup"]
