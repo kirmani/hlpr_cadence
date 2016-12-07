@@ -50,9 +50,9 @@ class ObjectListener(ResourceListener):
 			
 		#check if key corresponds to object_name
 		keymatch = False		
-		if((self.object_name_ == 'ketchup' and c == 'q') or
-			(self.object_name_ == 'mustard' and c == 'w') or
-			(self.object_name_ == 'mayo' and c == 'e')):
+		if((self.object_name_ == 'mug' and c == 'q') or
+			(self.object_name_ == 'banana' and c == 'w') or
+			(self.object_name_ == 'bowl' and c == 'e')):
 			keymatch = True
 
 		#if the key corresponds to object_name, the object "freeness" changes

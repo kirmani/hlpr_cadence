@@ -25,9 +25,8 @@ class DoEE382VExperiment(Action):
 
 	def Task(self):
 		print("wait a little bit, then say something to begin")
-		#ActionProcess('',
-        #WaitForResourceInterrupted('floor')).Run()
-		time.sleep(5)
+		ActionProcess('',
+                    WaitForResourceInterrupted('floor')).Run()
 		for obj in self.objects_:
 			ActionProcess('', AskAboutObject(obj)).Run()
 
