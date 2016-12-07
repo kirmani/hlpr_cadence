@@ -29,13 +29,10 @@ class FloorListener(ResourceListener):
 	def __init__(self):
 		self.active_ = True
 		minimum_block_time = 0.05
-		self.minimum_free_blocks_ = 1 if self.active_ else 1
-		self.minimum_hold_blocks_ = 1 if self.active_ else 1
-		self.minimum_free_time_ = minimum_block_time * self.minimum_free_blocks_
-		self.minimum_hold_time_ = minimum_block_time * self.minimum_hold_blocks_
 		self.holding_ = False
 		self.robot_speaking_count_ = 0
 		self.user_speaking_count_ = 0
+		self.minimum_hold_time_ = 0.05
 
 		# constants
 		ResourceListener.__init__(self, 'floor')
@@ -92,12 +89,7 @@ class FloorListener(ResourceListener):
 	def Poll(self, actions):
 		"Returns True if the floor is free"
 		try:
-			num_frames = self.input_frames_per_block_
-			if self.holding_:
-				num_frames *= self.minimum_hold_blocks_
-			else:
-				num_frames *= self.minimum_free_blocks_
-			block = self.stream_.read(num_frames)
+			block = self.stream_.read(self.input_frames_per_block_)
 		except IOError, e:
 			# Damnit.
 			self.error_count_ += 1
@@ -113,27 +105,12 @@ class FloorListener(ResourceListener):
 		self.samplers_[actions_hash].Sample(amplitude)
 
 		# Check if we got a valid most recent value.
-		if not self.holding_:
-			# Floor is free.
-			if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
-				self.last_update_time_ = now
-
-			# print("user doesn't have floor")
-			if now - self.last_update_time_ > self.minimum_free_time_:
-				self.holding_ = True
-				self.last_update_time_ = now
-		else:
-			if self.samplers_[actions_hash].IsConfidentValue(amplitude) != 0:
-				self.last_update_time_ = now
-
-			# print("user has floor")
-			if now - self.last_update_time_ > self.minimum_hold_time_:
-				self.holding_ = False
-				self.last_update_time_ = now
-
+		if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
+			self.last_update_time_ = now
+		self.holding_ = now - self.last_update_time_ > self.minimum_hold_time_
 		if self.holding_:
 			self.user_speaking_count_ += 1
-		if not self.holding_ and 'speak' in actions:#action == 'speak':
+		if not self.holding_ and 'speech' in actions:
 			self.robot_speaking_count_ += 1
 		return not self.holding_
 

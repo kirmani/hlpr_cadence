@@ -151,7 +151,7 @@ def main():
 		                                     'targetPoseOut':'targetPose'})
 
 		smach.StateMachine.add('ExecTra', ExecuteTrajectoryState(),
-		                        transitions={'succeeded':'end',
+		                        transitions={'succeeded':'Retract',
 		                                     'failed':'end',
 		                                     'aborted':'end'},
 		                                     remapping={'trajectoryIn':'tra'})
