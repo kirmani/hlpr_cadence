@@ -24,51 +24,51 @@ import time
 import random
 
 class AskAboutObject(Action):
-	def __init__(self, object_name):
-		self.object_name_ = object_name
-		resource_name = 'object_' + object_name
-		Action.__init__(self, 'ask_about_' + resource_name, [],
+    def __init__(self, object_name):
+	self.object_name_ = object_name
+	resource_name = 'object_' + object_name
+	Action.__init__(self, 'ask_about_' + resource_name, [],
                 {},
                 {})
+        self.active_ = False
 
-	def Task(self):
-		bowl_phrases = [" is empty", " is blue", " can hold things", " can hold food", " can be full", " can hold soup"]
-		banana_phrases = [" is yellow", " can be peeled", " is a fruit", " is something I can eat", " is liked by monkeys", " peel is slippery"]
-		mug_phrases = [" is empty", " is blue", " can hold tea", " can hold liquid", " has a handle", " might be hot"]
-		time.sleep(2)
-		ActionProcess('', LookAtObject(self.object_name_)).Run()
-		ActionProcess('',
-			SpeakActively(150, 50, "I know some things about the " + self.object_name_)).Run()
-		time.sleep(2)
+    def Task(self):
+        bowl_phrases = [" is empty", " is blue", " can hold things", " can hold food", " can be full", " can hold soup"]
+        banana_phrases = [" is yellow", " can be peeled", " is a fruit", " is something I can eat", " is liked by monkeys", " peel is slippery"]
+        mug_phrases = [" is empty", " is blue", " can hold tea", " can hold liquid", " has a handle", " might be hot"]
+	time.sleep(2)
+	ActionProcess('', LookAtObject(self.object_name_)).Run()
+	ActionProcess('',
+	SpeakActively(150, 50, "I know some things about the " + self.object_name_)).Run()
+	time.sleep(2)
 
-		phrases_used = []
+	phrases_used = []
 
-		for i in range(3):
-			random_phrase = random.randint(0,5)
-			while(random_phrase in phrases_used):
-				random_phrase = random.randint(0,5)
-			phrases_used.append(random_phrase)
-			if(self.object_name_ == 'bowl'):
-				ActionProcess('',
-				SpeakActively(150, 50, "The " + self.object_name_ + bowl_phrases[random_phrase])).Run()
-				time.sleep(2)
-			elif(self.object_name_ == 'banana'):
-				ActionProcess('',
-				SpeakActively(150, 50, "The " + self.object_name_ + banana_phrases[random_phrase])).Run()
-				time.sleep(2)
-			elif(self.object_name_ == 'mug'):
-				ActionProcess('',
-				SpeakActively(150, 50, "The " + self.object_name_ + mug_phrases[random_phrase])).Run()
-				time.sleep(2)
+	for i in range(3):
+	    random_phrase = random.randint(0,5)
+	    while(random_phrase in phrases_used):
+	        random_phrase = random.randint(0,5)
+	    phrases_used.append(random_phrase)
+	    phrase = ""
+            if(self.object_name_ == 'bowl'):
+	        phrase = "The " + self.object_name_ + bowl_phrases[random_phrase]
+	    elif(self.object_name_ == 'banana'):
+	        phrase = "The " + self.object_name_ + banana_phrases[random_phrase]
+	    elif(self.object_name_ == 'mug'):
+		phrase = "The " + self.object_name_ + mug_phrases[random_phrase]
+            if self.active_:
+	        ActionProcess('', SpeakActively(150, 50, phrase)).Run()
+            else:
+	        ActionProcess('', SpeakPassively(150, 50, phrase)).Run()
+	    time.sleep(2)
 
-			
-		ActionProcess('', LookCenter()).Run()
-		time.sleep(2)
-		#ActionProcess('',
-			#WaitForResourceInterrupted('floor')).Run()
-		#time.sleep(6)
-		#ActionProcess('',
-			#WaitForResourceFree('floor')).Run()
+	ActionProcess('', LookCenter()).Run()
+	time.sleep(2)
+	#ActionProcess('',
+	#WaitForResourceInterrupted('floor')).Run()
+	#time.sleep(6)
+	#ActionProcess('',
+	#WaitForResourceFree('floor')).Run()
 
 def main():
 	ActionProcess('', AskAboutObject('mug')).Run()

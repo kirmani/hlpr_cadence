@@ -176,6 +176,7 @@ class ReleaseUserTransition(PetriNetTransition):
           print("Releasing resource for user: %s" % resource_listener.name)
         self.owned_user_.RemoveToken(resource_listener.name)
         self.free_.AddToken(resource_listener.name)
+    print(resource_controller.GetMarking())
 
   def activated(self):
     for resource_listener in self.resource_listeners_:

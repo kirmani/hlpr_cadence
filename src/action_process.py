@@ -83,16 +83,18 @@ class SeizeRobotTransition(PetriNetTransition):
     # Remove resources from requested, and put resource tokens in requested
     # place.
     for resource in self.action_.preconditions:
-      ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
-      ResourceControllerApi.RemoveResourceFromPlace('free', resource)
-      ResourceControllerApi.AddResourceToPlace('owned_robot', resource)
+      if (ResourceControllerApi.CheckGuard('requested_robot', resource)
+              and ResourceControllerApi.CheckGuard('free', resource)):
+        ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
+        ResourceControllerApi.RemoveResourceFromPlace('free', resource)
+        ResourceControllerApi.AddResourceToPlace('owned_robot', resource)
 
   def activated(self):
     for resource in self.action_.preconditions:
-      if not (ResourceControllerApi.CheckGuard('requested_robot', resource)
+      if (ResourceControllerApi.CheckGuard('requested_robot', resource)
               and ResourceControllerApi.CheckGuard('free', resource)):
-        return False
-    return True
+        return True
+    return False
 
 class RequestRobotTransition(PetriNetTransition):
   def __init__(self, action):
