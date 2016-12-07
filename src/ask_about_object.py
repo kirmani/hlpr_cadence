@@ -31,16 +31,17 @@ class AskAboutObject(Action):
                 {},
                 {})
         self.active_ = False
+        self.wait_time_ = 2.0 if self.active_ else 4.0
 
     def Task(self):
         bowl_phrases = [" is empty", " is blue", " can hold things", " can hold food", " can be full", " can hold soup"]
         banana_phrases = [" is yellow", " can be peeled", " is a fruit", " is something I can eat", " is liked by monkeys", " peel is slippery"]
         mug_phrases = [" is empty", " is blue", " can hold tea", " can hold liquid", " has a handle", " might be hot"]
-	time.sleep(2)
+	time.sleep(self.wait_time_)
 	ActionProcess('', LookAtObject(self.object_name_)).Run()
 	ActionProcess('',
 	SpeakActively(150, 50, "I know some things about the " + self.object_name_)).Run()
-	time.sleep(2)
+	time.sleep(self.wait_time_)
 
 	phrases_used = []
 
@@ -60,10 +61,9 @@ class AskAboutObject(Action):
 	        ActionProcess('', SpeakActively(150, 50, phrase)).Run()
             else:
 	        ActionProcess('', SpeakPassively(150, 50, phrase)).Run()
-	    time.sleep(2)
+	    time.sleep(self.wait_time_)
 
 	ActionProcess('', LookCenter()).Run()
-	time.sleep(2)
 	#ActionProcess('',
 	#WaitForResourceInterrupted('floor')).Run()
 	#time.sleep(6)
