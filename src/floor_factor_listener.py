@@ -12,9 +12,9 @@ class FloorFactorListener(ResourceListener):
 	    # print("The floor factor is currently " + str(self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) ))
 	    # print("The robot count is " + str(self.floor_listener_.robot_speaking_count_))
       robot_count = self.floor_listener_.robot_speaking_count_
-      if self.holding_:
-        robot_count -= 100
       user_count = self.floor_listener_.user_speaking_count_ + 1
+      if self.holding_:
+        user_count += 100
       ratio = float(robot_count) / float(user_count)
       print("robot vs. user count: %s / %s = %s" % (robot_count, user_count, ratio))
       self.holding_ = ratio < self.floor_factor_
