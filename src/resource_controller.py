@@ -86,7 +86,7 @@ class ReleaseRobotTransition(PetriNetTransition):
 
   def fire(self):
     for resource_listener in self.resource_listeners_:
-      if self.requested_robot_.HasToken(resource_listener.name) \
+      if not self.requested_robot_.HasToken(resource_listener.name) \
           and self.owned_robot_.HasToken(resource_listener.name):
         if kVerbose:
           print("Releasing resource (%s) from robot." % resource_listener.name)
@@ -96,7 +96,7 @@ class ReleaseRobotTransition(PetriNetTransition):
 
   def activated(self):
     for resource_listener in self.resource_listeners_:
-      if self.requested_robot_.HasToken(resource_listener.name) \
+      if not self.requested_robot_.HasToken(resource_listener.name) \
           and self.owned_robot_.HasToken(resource_listener.name):
         return True
     return False

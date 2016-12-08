@@ -63,7 +63,7 @@ class FinishTransition(PetriNetTransition):
     if self.started_.HasToken(self.action_.name):
       self.started_.RemoveToken(self.action_.name)
       for resource in self.action_.preconditions:
-        ResourceControllerApi.AddResourceToPlace('requested_robot', resource)
+        ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
     self.finished_.AddToken(self.action_.name)
@@ -85,7 +85,6 @@ class SeizeRobotTransition(PetriNetTransition):
     for resource in self.action_.preconditions:
       if (ResourceControllerApi.CheckGuard('requested_robot', resource)
               and ResourceControllerApi.CheckGuard('free', resource)):
-        ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
         ResourceControllerApi.RemoveResourceFromPlace('free', resource)
         ResourceControllerApi.AddResourceToPlace('owned_robot', resource)
 
