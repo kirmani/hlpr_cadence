@@ -2,9 +2,10 @@ from resource_listener import ResourceListener
 
 class FloorFactorListener(ResourceListener):
     def __init__(self,floor_listener):
-        self.floor_listener_ = floor_listener
-        self.floor_factor_ = 0.5
         self.name = "floor_factor"
+        self.floor_listener_ = floor_listener
+        self.active_ = True
+        self.floor_factor_ = 2.0 if self.active_ else 0.5
 
     def Poll(self, actions):
 	    # print("The floor factor is currently " + str(self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) ))
