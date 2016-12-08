@@ -129,7 +129,7 @@ class RequestUserTransition(PetriNetTransition):
         self.requested_user_.AddToken(resource_listener.name)
 
   def activated(self):
-    for resource_listener in self.resource_listeners_:
+    for resource_listener in [rl for rl in self.resource_listeners_ if rl.name != 'floor_factor']:
       if not resource_listener.Poll(self.actions_) \
           and not self.owned_user_.HasToken(resource_listener.name):
         return True

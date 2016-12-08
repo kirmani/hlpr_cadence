@@ -70,9 +70,9 @@ class FinishTransition(PetriNetTransition):
     ResourceControllerApi.RemoveActiveAction(self.action_.name)
 
   def activated(self):
-    return (self.started_.HasToken(self.action_.name) \
-        or self.interrupted_.HasToken(self.action_.name)) \
-        and self.action_.IsFinished()
+    return self.action_.IsFinished() and \
+        (self.started_.HasToken(self.action_.name) \
+        or self.interrupted_.HasToken(self.action_.name))
 
 class SeizeRobotTransition(PetriNetTransition):
   def __init__(self, name, action):

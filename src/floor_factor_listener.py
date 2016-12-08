@@ -7,7 +7,10 @@ class FloorFactorListener(ResourceListener):
         self.name = "floor_factor"
 
     def Poll(self, actions):
-	# print("The floor factor is currently " + str(self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) ))
-	# print("The robot count is " + str(self.floor_listener_.robot_speaking_count_))
-	return True
-        return self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) < self.floor_factor_
+	    # print("The floor factor is currently " + str(self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) ))
+	    # print("The robot count is " + str(self.floor_listener_.robot_speaking_count_))
+      robot_count = self.floor_listener_.robot_speaking_count_
+      user_count = self.floor_listener_.user_speaking_count_ + 1
+      ratio = float(robot_count) / float(user_count)
+      # print("robot vs. user count: %s / %s = %s" % (robot_count, user_count, ratio))
+      return ratio < self.floor_factor_

@@ -38,6 +38,7 @@ class Action:
     self.on_interrupt_ = func
 
   def IsFinished(self):
+    # print('is finished')
     return not self.process_.is_alive()
 
   def TaskWrapper_(self):
