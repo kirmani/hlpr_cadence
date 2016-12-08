@@ -23,7 +23,6 @@ def on_interrupt(action):
     global do_ee382v_experiment
     do_ee382v_experiment.SetInterrupted(True)
     ActionProcess('', LookCenter()).Run()
-
 class DoEE382VExperiment(Action):
     def __init__(self):
         Action.__init__(self, 'do_ee382v_experiment', [], {}, {})
@@ -35,14 +34,21 @@ class DoEE382VExperiment(Action):
         ActionProcess('',
             WaitForResourceInterrupted('floor')).Run()
         while len(self.objects_) > 0:
-            obj = self.objects_[random.randint(0, len(self.objects_) - 1)]
-            if ResourceControllerApi.CheckGuard('free', 'object_' + obj):
+            objects_available = []
+            for obj in self.objects_:
+                if ResourceControllerApi.CheckGuard('free', 'object_' + obj):
+                    objects_available.append(obj)
+            if len(objects_available) > 0:
+                obj = objects_available[random.randint(0, len(objects_available) - 1)]
                 ask_about_object = AskAboutObject(obj)
                 ask_about_object.OnInterrupt(on_interrupt)
                 self.interrupted = False
                 ActionProcess('', ask_about_object).Run()
                 if not self.interrupted_:
                     self.objects_.remove(obj)
+            else:
+                # Tell jokes. Vamp time.
+                pass
 
     def SetInterrupted(self, interrupted):
         self.interrupted_ = interrupted
