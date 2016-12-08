@@ -4,7 +4,7 @@ class FloorFactorListener(ResourceListener):
     def __init__(self, floor_listener):
         self.name = "floor_factor"
         self.floor_listener_ = floor_listener
-        self.active_ = False
+        self.active_ = True
         self.floor_factor_ = 2.0 if self.active_ else 0.5
         self.holding_ = True
 

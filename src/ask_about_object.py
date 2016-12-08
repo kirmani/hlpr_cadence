@@ -30,7 +30,7 @@ class AskAboutObject(Action):
     Action.__init__(self, 'ask_about_' + resource_name, [resource_name],
         {resource_name: True},
         {resource_name: True})
-    self.active_ = False
+    self.active_ = True
     self.wait_time_ = 1.0 if self.active_ else 4.0
 
   def Task(self):

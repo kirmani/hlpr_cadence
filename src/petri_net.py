@@ -32,10 +32,10 @@ class PetriNetTransition(PetriNetNode):
 class PetriNetPlace(PetriNetNode):
   def __init__(self, name):
     PetriNetNode.__init__(self, name)
-    self.tokens_ = Set()
+    self.tokens_ = []
 
   def AddToken(self, token):
-    self.tokens_.add(token)
+    self.tokens_.append(token)
 
   def HasToken(self, token):
     return token in self.tokens_
