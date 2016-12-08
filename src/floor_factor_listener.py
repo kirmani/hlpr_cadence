@@ -6,7 +6,7 @@ class FloorFactorListener(ResourceListener):
         self.floor_listener_ = floor_listener
         self.active_ = True
         self.floor_factor_ = 2.0 if self.active_ else 0.5
-        self.holding_ = False
+        self.holding_ = True
 
     def Poll(self, actions):
 	    # print("The floor factor is currently " + str(self.floor_listener_.robot_speaking_count_ / (self.floor_listener_.user_speaking_count_ + 1) ))
