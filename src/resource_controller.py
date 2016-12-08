@@ -22,7 +22,6 @@ import rospy
 kVerbose = True
 kDebug = True
 
-kResources = ['floor']
 kPlaces = ['requested_robot', 'free', 'owned_user', 'owned_robot',
            'requested_user']
 
@@ -78,38 +77,55 @@ class ResourceControllerApi:
       return False
 
 class ReleaseRobotTransition(PetriNetTransition):
-  def __init__(self, requested_robot, owned_robot, free):
+  def __init__(self, requested_robot, owned_robot, free, resource_listeners):
     PetriNetTransition.__init__(self, 'release_robot')
     self.requested_robot_ = requested_robot
     self.owned_robot_ = owned_robot
     self.free_ = free
+    self.resource_listeners_ = resource_listeners
 
   def fire(self):
-    if kVerbose: print("Releasing resource (%s) from robot." % 'floor')
-    self.requested_robot_.RemoveToken('floor')
-    self.owned_robot_.RemoveToken('floor')
-    self.free_.AddToken('floor')
+    for resource_listener in self.resource_listeners_:
+      if self.requested_robot_.HasToken(resource_listener.name) \
+          and self.owned_robot_.HasToken(resource_listener.name):
+        if kVerbose:
+          print("Releasing resource (%s) from robot." % resource_listener.name)
+        self.requested_robot_.RemoveToken(resource_listener.name)
+        self.owned_robot_.RemoveToken(resource_listener.name)
+        self.free_.AddToken(resource_listener.name)
 
   def activated(self):
-    return self.requested_robot_.HasToken('floor') \
-       and self.owned_robot_.HasToken('floor')
+    for resource_listener in self.resource_listeners_:
+      if self.requested_robot_.HasToken(resource_listener.name) \
+          and self.owned_robot_.HasToken(resource_listener.name):
+        return True
+    return False
 
 class YieldTransition(PetriNetTransition):
-  def __init__(self, requested_user, owned_robot, owned_user):
+  def __init__(self, requested_user, owned_robot, owned_user, resource_listeners):
     PetriNetTransition.__init__(self, 'yield')
     self.requested_user_ = requested_user
     self.owned_robot_ = owned_robot
     self.owned_user_ = owned_user
+    self.resource_listeners_ = resource_listeners
 
   def fire(self):
-    if kVerbose: print("Yielding resource (%s) from robot to human." % 'floor')
-    self.requested_user_.RemoveToken('floor')
-    self.owned_robot_.RemoveToken('floor')
-    self.owned_user_.AddToken('floor')
+    for resource_listener in self.resource_listeners_:
+      if self.requested_user_.HasToken(resource_listener.name) \
+          and self.owned_robot_.HasToken(resource_listener.name):
+        if kVerbose:
+          print("Yielding resource (%s) from robot to human."
+              % resource_listener.name)
+        self.requested_user_.RemoveToken(resource_listener.name)
+        self.owned_robot_.RemoveToken(resource_listener.name)
+        self.owned_user_.AddToken(resource_listener.name)
 
   def activated(self):
-    return self.requested_user_.HasToken('floor') \
-       and self.owned_robot_.HasToken('floor')
+    for resource_listener in self.resource_listeners_:
+      if self.requested_user_.HasToken(resource_listener.name) \
+          and self.owned_robot_.HasToken(resource_listener.name):
+        return True
+    return False
 
 class RequestUserTransition(PetriNetTransition):
   def __init__(self, owned_user, requested_user, resource_listeners, actions):
@@ -129,7 +145,7 @@ class RequestUserTransition(PetriNetTransition):
         self.requested_user_.AddToken(resource_listener.name)
 
   def activated(self):
-    for resource_listener in [rl for rl in self.resource_listeners_ if rl.name != 'floor_factor']:
+    for resource_listener in self.resource_listeners_:
       if not resource_listener.Poll(self.actions_) \
           and not self.owned_user_.HasToken(resource_listener.name):
         return True
@@ -200,11 +216,13 @@ class ResourceController(PetriNet):
     self.transitions_.append(
         ReleaseRobotTransition(self.places_['requested_robot'],
                                self.places_['owned_robot'],
-                               self.places_['free']))
+                               self.places_['free'],
+                               self.resource_listeners_))
     self.transitions_.append(
         YieldTransition(self.places_['requested_user'],
                                self.places_['owned_robot'],
-                               self.places_['owned_user']))
+                               self.places_['owned_user'],
+                               self.resource_listeners_))
     self.transitions_.append(
         RequestUserTransition(self.places_['owned_user'],
                               self.places_['requested_user'],

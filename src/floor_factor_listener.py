@@ -12,5 +12,5 @@ class FloorFactorListener(ResourceListener):
       robot_count = self.floor_listener_.robot_speaking_count_
       user_count = self.floor_listener_.user_speaking_count_ + 1
       ratio = float(robot_count) / float(user_count)
-      # print("robot vs. user count: %s / %s = %s" % (robot_count, user_count, ratio))
+      print("robot vs. user count: %s / %s = %s" % (robot_count, user_count, ratio))
       return ratio < self.floor_factor_
