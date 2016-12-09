@@ -1,10 +1,12 @@
 from resource_listener import ResourceListener
+import rospy
 
 class FloorFactorListener(ResourceListener):
     def __init__(self, floor_listener):
         self.name = "floor_factor"
         self.floor_listener_ = floor_listener
-        self.active_ = True
+        self.active_ = rospy.get_param('active', True)
+        print('initializing floor factor with parameter: %s' % self.active_)
         self.floor_factor_ = 2.0 if self.active_ else 0.5
         self.holding_ = True
 

@@ -19,11 +19,13 @@ from look_center import LookCenter
 from nod import Nod
 import time
 import random
+import rospy
 
 class Comment(Action):
     def __init__(self):
         Action.__init__(self, 'comment', [],{},{})
         self.active_ = True
+        self.active_ = rospy.get_param('active', True)
         self.wait_time_ = 0.25 if self.active_ else 1.0
 
     def Task(self):
