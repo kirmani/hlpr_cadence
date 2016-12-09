@@ -90,7 +90,7 @@ class FloorListener(ResourceListener):
         "Returns True if the floor is free"
         try:
             if self.stream_.get_read_available() < self.input_frames_per_block_:
-                return self.holding_
+                return not self.holding_
             block = self.stream_.read(self.input_frames_per_block_)
         except IOError, e:
             # Damnit.
