@@ -21,9 +21,6 @@ class ObjectListener(ResourceListener):
     def __init__(self, object_name):
         ResourceListener.__init__(self, 'object_' + object_name)
         self.object_name_ = object_name
-        self.free_ = True
-        self.minimum_hold_time_ = 0.2 # seconds
-        self.last_update_time_ = 0
         print("Listening for object: %s" % object_name)
 
     def Poll(self, actions):
@@ -48,17 +45,10 @@ class ObjectListener(ResourceListener):
         termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
         fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
 
-        #check if key corresponds to object_name
-        keymatch = False
-        if((self.object_name_ == 'banana' and c == 'q') or
-            (self.object_name_ == 'mug' and c == 'w') or
-            (self.object_name_ == 'bowl' and c == 'e')):
-            keymatch = True
-
-        #if the key corresponds to object_name, the object "freeness" changes
-        if keymatch and (now - self.last_update_time_ > self.minimum_hold_time_):
-            self.last_update_time_ = now
-            self.free_ = not self.free_
-
-
-        return self.free_
+        if self.object_name_ == 'banana' and c == 'q':
+            return False
+        if self.object_name_ == 'mug' and c == 'w':
+            return False
+        if self.object_name_ == 'bowl' and c == 'e':
+            return False
+        return True
