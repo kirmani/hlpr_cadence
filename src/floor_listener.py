@@ -32,7 +32,7 @@ class FloorListener(ResourceListener):
         self.holding_ = False
         self.robot_speaking_count_ = 0
         self.user_speaking_count_ = 0
-        self.minimum_hold_time_ = 0.05
+        self.response_delay_ = 1.0
 
         # constants
         ResourceListener.__init__(self, 'floor')
@@ -110,10 +110,12 @@ class FloorListener(ResourceListener):
         # Check if we got a valid most recent value.
         # if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
         #     self.last_update_time_ = now
-        # self.holding_ = now - self.last_update_time_ > self.minimum_hold_time_
-        self.holding_ = amplitude > \
+        # self.holding_ = now - self.last_update_time_ > self.response_delay_
+        if amplitude > \
                 self.samplers_[actions_hash].expectation_ \
-                + math.sqrt(self.samplers_[actions_hash].variance_)
+                + math.sqrt(self.samplers_[actions_hash].variance_):
+            self.last_update_time_ = now
+        self.holding_ = now - self.last_update_time_ > self.response_delay_
         if self.holding_:
             self.user_speaking_count_ += 1
         if not self.holding_ and 'speech' in actions:
