@@ -41,6 +41,8 @@ class FloorListener(ResourceListener):
         self.conflict_deque_ = deque()
         self.last_time_without_lapse_ = 0
         self.last_time_without_conflict_ = 0
+        self.conflict_threshold_ = 0.3
+        self.lapse_threshold_ = 0.5
 
         # constants
         ResourceListener.__init__(self, 'floor')
@@ -141,10 +143,10 @@ class FloorListener(ResourceListener):
                 / float(len(self.lapse_deque_))
         # print("lapse confidence: %s" % lapse_confidence)
 
-        if lapse_confidence < 0.5:
+        if lapse_confidence < self.lapse_threshold_:
             self.last_time_without_lapse_ = now
 
-        if conflict_confidence < 0.5:
+        if conflict_confidence < self.conflict_threshold_:
             self.last_time_without_conflict_ = now
 
         # Check if we got a valid most recent value.
@@ -175,7 +177,7 @@ class FloorListener(ResourceListener):
             else:
                 # No one has the floor. Check if user is trying to take the
                 # floor.
-                if conflict_confidence > 0.5:
+                if conflict_confidence > self.conflict_threshold_:
                     self.holding_ = True
         return not self.holding_
 
