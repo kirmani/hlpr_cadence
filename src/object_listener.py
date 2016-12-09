@@ -21,6 +21,9 @@ class ObjectListener(ResourceListener):
     def __init__(self, object_name):
         ResourceListener.__init__(self, 'object_' + object_name)
         self.object_name_ = object_name
+        self.response_delay_ = 0.1
+        self.last_hold_time_ = 0
+        self.holding_ = False
         print("Listening for object: %s" % object_name)
 
     def Poll(self, actions):
@@ -45,10 +48,9 @@ class ObjectListener(ResourceListener):
         termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
         fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
 
-        if self.object_name_ == 'mug' and c == 'q':
-            return False
-        if self.object_name_ == 'bowl' and c == 'w':
-            return False
-        if self.object_name_ == 'banana' and c == 'e':
-            return False
-        return True
+        self.holding_ = (self.object_name_ == 'mug' and c == 'q') \
+                or (self.object_name_ == 'bowl' and c == 'w') \
+                or (self.object_name_ == 'banana' and c == 'e')
+        if self.holding_:
+            self.last_hold_time_ = now
+        return now - self.last_hold_time_ > self.response_delay_
