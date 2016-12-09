@@ -138,7 +138,7 @@ class RequestUserTransition(PetriNetTransition):
     # Place resource tokens in requested place.
     for resource_listener in self.resource_listeners_:
       if not resource_listener.Poll(self.actions_) \
-          and not self.owned_user_.HasToken(resource_listener.name):
+          and not self.requested_user_.HasToken(resource_listener.name):
         if kVerbose:
           print("Requesting resource for user: %s" % resource_listener.name)
         self.requested_user_.AddToken(resource_listener.name)
