@@ -35,8 +35,8 @@ class LookAtObject(Action):
 
     #Generate some positions
     
-		left_down = transform_helper(Vector3(1.0,-2.0,-1.0), 'pan_base_link')
-		right_down = transform_helper(Vector3(1.0,2.0,-1.0), 'pan_base_link')
+		left_down = transform_helper(Vector3(1.0,-1.0,-1.0), 'pan_base_link')
+		right_down = transform_helper(Vector3(1.0,1.0,-1.0), 'pan_base_link')
 		center_down = transform_helper(Vector3(1.0,0.0,-1.0), 'pan_base_link')
 
     # Generate some times

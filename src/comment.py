@@ -21,28 +21,30 @@ import time
 import random
 
 class Comment(Action):
-	def __init__(self):
-		Action.__init__(self, 'comment', [],{},{})
-		self.active_ = True
-		self.wait_time_ = 0.25 if self.active_ else 1.0
+    def __init__(self):
+        Action.__init__(self, 'comment', [],{},{})
+        self.active_ = True
+        self.wait_time_ = 0.25 if self.active_ else 1.0
 
-	def Task(self):
-		comments = [
+    def Task(self):
+        comments = [
 			"You are a good teacher", 
 			"You look nice today", 
 			"I like bananas",
 			"My name is Gemini"]
-		time.sleep(self.wait_time_)
-		ActionProcess('', Nod()).Run()
+        time.sleep(self.wait_time_)
+        ActionProcess('', LookCenter()).Run()
+        time.sleep(self.wait_time_)
+        ActionProcess('', Nod()).Run()
 
-		random_comment = random.randint(0,len(comments) - 1)
-		if self.active_:
-			ActionProcess('', SpeakActively(150, 50, comments[random_comment])).Run()
-		else:
-			ActionProcess('', SpeakPassively(150, 50, comments[random_comment])).Run()
-		time.sleep(self.wait_time_)
+        random_comment = random.randint(0,len(comments) - 1)
+        if self.active_:
+            ActionProcess('', SpeakActively(150, 50, comments[random_comment])).Run()
+        else:
+            ActionProcess('', SpeakPassively(150, 50, comments[random_comment])).Run()
+        time.sleep(self.wait_time_)
 
-		ActionProcess('', Nod()).Run()
+        ActionProcess('', Nod()).Run()
 
 def main():
   ActionProcess('', AskAboutObject('mug')).Run()
