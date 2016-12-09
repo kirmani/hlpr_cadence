@@ -55,7 +55,7 @@ class DoEE382VExperiment(Action):
 					self.objects_.remove(obj)
 			else:
 				print("No available object")
-				ActionProcess('', Comment).Run()
+				ActionProcess('', Comment()).Run()
 
 	def SetInterrupted(self, interrupted):
 		self.interrupted_ = interrupted
