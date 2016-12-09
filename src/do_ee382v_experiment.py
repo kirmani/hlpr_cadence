@@ -30,6 +30,7 @@ class DoEE382VExperiment(Action):
 	def __init__(self):
 		Action.__init__(self, 'do_ee382v_experiment', [], {}, {})
 		self.objects_ = ['mug', 'banana', 'bowl']
+		#self.objects_ = ['tongs','pitcher','sugar']
 		self.interrupted_ = False
 
 	def Task(self):

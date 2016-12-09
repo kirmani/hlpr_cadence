@@ -50,13 +50,13 @@ class LookAtObject(Action):
 
 		goal = LookatWaypointsGoal()
 
-		if(self.object_name_ == 'mug'):
+		if(self.object_name_ == 'mug' or self.object_name_ == 'tongs'):
 			goal.scan_positions = [positions[0]]
 			goal.scan_times = [scan_times[0]]
-		elif(self.object_name_ == 'banana'):
+		elif(self.object_name_ == 'banana' or self.object_name_ == 'pitcher'):
 			goal.scan_positions = [positions[1]]
 			goal.scan_times = [scan_times[1]]
-		elif(self.object_name_ == 'bowl'):
+		elif(self.object_name_ == 'bowl' or self.object_name_ == 'sugar'):
 			goal.scan_positions = [positions[2]]
 			goal.scan_times = [scan_times[2]]
 

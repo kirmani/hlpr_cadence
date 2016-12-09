@@ -322,6 +322,9 @@ def main():
 	resource_listeners.add(ObjectListener('mug'))
 	resource_listeners.add(ObjectListener('banana'))
 	resource_listeners.add(ObjectListener('bowl'))
+	#resource_listeners.add(ObjectListener('tongs'))
+	#resource_listeners.add(ObjectListener('pitcher'))
+	#resource_listeners.add(ObjectListener('sugar'))
 
 
 	resource_controller = ResourceController(resource_listeners)

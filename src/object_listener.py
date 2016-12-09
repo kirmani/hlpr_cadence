@@ -45,10 +45,10 @@ class ObjectListener(ResourceListener):
         termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
         fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
 
-        if self.object_name_ == 'mug' and c == 'q':
+        if (self.object_name_ == 'mug' or self.object_name_ == 'tongs') and c == 'q':
             return False
-        if self.object_name_ == 'bowl' and c == 'w':
+        if (self.object_name_ == 'bowl' or self.object_name_ == 'pitcher') and c == 'w':
             return False
-        if self.object_name_ == 'banana' and c == 'e':
+        if (self.object_name_ == 'banana' or self.object_name_ == 'sugar') and c == 'e':
             return False
         return True

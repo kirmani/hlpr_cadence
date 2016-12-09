@@ -36,7 +36,7 @@ class AskAboutObject(Action):
 
   def Task(self):
     bowl_phrases = [
-            " is empty",
+            " is full",
             " is blue",
             " can hold things",
             " can hold food",
@@ -50,6 +50,13 @@ class AskAboutObject(Action):
             " is liked by monkeys",
             " peel is slippery"]
     mug_phrases = [
+            " is empty",
+            " is blue",
+            " can hold tea",
+            " can hold liquid",
+            " has a handle",
+            " might be hot"]
+		mug_phrases = [
             " is empty",
             " is blue",
             " can hold tea",
