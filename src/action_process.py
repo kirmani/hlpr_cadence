@@ -62,10 +62,12 @@ class FinishTransition(PetriNetTransition):
     print("Finishing action: %s" % self.action_.name)
     if self.started_.HasToken(self.action_.name):
       self.started_.RemoveToken(self.action_.name)
-      for resource in self.action_.preconditions:
-        ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
     if self.interrupted_.HasToken(self.action_.name):
       self.interrupted_.RemoveToken(self.action_.name)
+    for resource in self.action_.preconditions:
+      ResourceControllerApi.RemoveResourceFromPlace('requested_robot', resource)
+      if ResourceControllerApi.CheckGuard('owned_robot', resource):
+        ResourceControllerApi.RemoveResourceFromPlace('owned_robot', resource)
     self.finished_.AddToken(self.action_.name)
     ResourceControllerApi.RemoveActiveAction(self.action_.name)
 
