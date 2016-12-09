@@ -90,7 +90,6 @@ class ReleaseRobotTransition(PetriNetTransition):
           and self.owned_robot_.HasToken(resource_listener.name):
         if kVerbose:
           print("Releasing resource (%s) from robot." % resource_listener.name)
-        self.requested_robot_.RemoveToken(resource_listener.name)
         self.owned_robot_.RemoveToken(resource_listener.name)
         self.free_.AddToken(resource_listener.name)
 
@@ -147,7 +146,7 @@ class RequestUserTransition(PetriNetTransition):
   def activated(self):
     for resource_listener in self.resource_listeners_:
       if not resource_listener.Poll(self.actions_) \
-          and not self.owned_user_.HasToken(resource_listener.name):
+          and not self.requested_user_.HasToken(resource_listener.name):
         return True
     return False
 
@@ -165,7 +164,6 @@ class SeizeUserTransition(PetriNetTransition):
           self.free_.HasToken(resource_listener.name):
         if kVerbose:
           print("Seizing resource for user: %s" % resource_listener.name)
-        self.requested_user_.RemoveToken(resource_listener.name)
         self.free_.RemoveToken(resource_listener.name)
         self.owned_user_.AddToken(resource_listener.name)
 
@@ -177,8 +175,9 @@ class SeizeUserTransition(PetriNetTransition):
     return False
 
 class ReleaseUserTransition(PetriNetTransition):
-  def __init__(self, owned_user, free, resource_listeners, actions):
+  def __init__(self, requested_user, owned_user, free, resource_listeners, actions):
     PetriNetTransition.__init__(self, 'release_user')
+    self.requested_user_ = requested_user
     self.owned_user_ = owned_user
     self.free_ = free
     self.resource_listeners_ = resource_listeners
@@ -190,6 +189,7 @@ class ReleaseUserTransition(PetriNetTransition):
           and self.owned_user_.HasToken(resource_listener.name):
         if kVerbose:
           print("Releasing resource for user: %s" % resource_listener.name)
+        self.requested_user_.RemoveToken(resource_listener.name)
         self.owned_user_.RemoveToken(resource_listener.name)
         self.free_.AddToken(resource_listener.name)
 
@@ -233,7 +233,8 @@ class ResourceController(PetriNet):
                             self.places_['owned_user'],
                             self.resource_listeners_))
     self.transitions_.append(
-        ReleaseUserTransition(self.places_['owned_user'],
+        ReleaseUserTransition(self.places_['requested_user'],
+                              self.places_['owned_user'],
                               self.places_['free'],
                               self.resource_listeners_,
                               self.actions_))
