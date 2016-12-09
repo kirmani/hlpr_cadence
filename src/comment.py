@@ -47,7 +47,7 @@ class Comment(Action):
         ActionProcess('', Nod()).Run()
 
 def main():
-  ActionProcess('', AskAboutObject('mug')).Run()
+  ActionProcess('', Comment()).Run()
 
 if __name__ == '__main__':
   main()

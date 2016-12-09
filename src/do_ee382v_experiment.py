@@ -35,9 +35,9 @@ class DoEE382VExperiment(Action):
 	def Task(self):
 		
 		print("wait a little bit, then say something to begin")
-		ActionProcess('', Comment()).Run()
 		ActionProcess('',
 			WaitForResourceInterrupted('floor')).Run()
+		ActionProcess('', Comment()).Run()
 		while len(self.objects_) > 0:
 			objects_available = []
 			for obj in self.objects_:
