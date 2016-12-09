@@ -56,13 +56,6 @@ class AskAboutObject(Action):
             " can hold liquid",
             " has a handle",
             " might be hot"]
-		mug_phrases = [
-            " is empty",
-            " is blue",
-            " can hold tea",
-            " can hold liquid",
-            " has a handle",
-            " might be hot"]
     time.sleep(self.wait_time_)
     ActionProcess('', LookAtObject(self.object_name_)).Run()
     if self.active_:
