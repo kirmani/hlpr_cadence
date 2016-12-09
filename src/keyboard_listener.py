@@ -19,9 +19,7 @@ import time
 
 class KeyboardListener(ResourceListener):
   def StartListening(self):
-    self.minimum_hold_time_ = 0.5 # seconds
-    self.last_update_time_ = 0
-    print("Listening for *any* keyboard input.")
+    print("Listening for 't' keyboard input.")
 
   def Poll(self):
     now = time.time()
@@ -45,7 +43,4 @@ class KeyboardListener(ResourceListener):
     termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
     fcntl.fcntl(fd, fcntl.F_SETFL, oldflags)
 
-    if c != None:
-      self.last_update_time_ = now
-
-    return now - self.last_update_time_ < self.minimum_hold_time_
+    return c == 't'
