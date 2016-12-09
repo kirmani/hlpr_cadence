@@ -67,6 +67,7 @@ class PetriNet(object):
     self.static_ = False
 
   def Run(self):
+    # TODO(kirmani): Make all transition nodes fire concurrently.
     self.static_ = False
     while not self.EndCondition():
       self.static_ = True
