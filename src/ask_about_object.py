@@ -22,6 +22,7 @@ from wait_for_resource_interrupted import WaitForResourceInterrupted
 from look_center import LookCenter
 import time
 import random
+import rospy
 
 class AskAboutObject(Action):
   def __init__(self, object_name):
@@ -30,7 +31,7 @@ class AskAboutObject(Action):
     Action.__init__(self, 'ask_about_' + resource_name, [resource_name],
         {resource_name: True},
         {resource_name: True})
-    self.active_ = True
+    self.active_ = rospy.get_param('active', True)
     self.wait_time_ = 0.25 if self.active_ else 1.0
 
   def Task(self):

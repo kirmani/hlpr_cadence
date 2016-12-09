@@ -1,0 +1,8 @@
+<launch>
+	<param name="active" type="bool" value="true" />
+
+  <node pkg="hlpr_lookat" name="look_at_service" type="look_at_service.py"/>
+	<node pkg="hlpr_lookat" name="lookat_waypoints_action_server" type="lookat_waypoints_action_server.py"/>
+	<node pkg="hlpr_cadence" name="resource_controller" type="resource_controller.py"/>
+	<node pkg="hlpr_cadence" name="do_ee382v_experiment" type="do_ee382v_experiment.py"/>
+</launch>
