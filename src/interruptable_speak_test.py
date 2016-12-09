@@ -23,7 +23,7 @@ def main():
     g_interrupted = True
     while g_interrupted:
         g_interrupted = False
-        speak_action = SpeakActively(150, 50, "please don't interrupt me i really want to finish" \
+        speak_action = Speak(150, 50, "please don't interrupt me i really want to finish" \
             "this sentence okay good it worked")
         speak_action.OnInterrupt(on_interrupt)
         ActionProcess('speak_action_process', speak_action).Run()

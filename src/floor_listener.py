@@ -12,11 +12,13 @@ PyAudio Test
 
 # from petri_net import *
 # from resource_controller import ResourceControllerApi
+from collections import deque
 from resource_listener import ResourceListener
 from sampler import Sampler
 import json
 import math
 import os
+import rospy
 import pyaudio
 import struct
 import time
@@ -27,12 +29,18 @@ kSensesFile = os.path.join(os.path.dirname(__file__),
 
 class FloorListener(ResourceListener):
     def __init__(self):
-        self.active_ = True
+        self.active_ = rospy.get_param('active', True)
         minimum_block_time = 0.05
         self.holding_ = False
         self.robot_speaking_count_ = 0
         self.user_speaking_count_ = 0
         self.response_delay_ = 1.0
+        self.lapse_tolerance_ = 0.5 if self.active_ else 4.0
+        self.lapse_deque_ = deque()
+        self.conflict_tolerance_ = 1.0
+        self.conflict_deque_ = deque()
+        self.last_time_without_lapse_ = 0
+        self.last_time_without_conflict_ = 0
 
         # constants
         ResourceListener.__init__(self, 'floor')
@@ -107,19 +115,68 @@ class FloorListener(ResourceListener):
         amplitude = self.GetRms_(block)
         self.samplers_[actions_hash].Sample(amplitude)
 
+        self.conflict_deque_.append((amplitude, now))
+        while now - self.conflict_deque_[0][1] > self.conflict_tolerance_:
+            self.conflict_deque_.popleft()
+        conflict_threshold_volume = self.samplers_[actions_hash].expectation_ \
+                + math.sqrt(self.samplers_[actions_hash].variance_)
+        num_above_threshold = 0
+        for sample in self.conflict_deque_:
+            if sample[0] > conflict_threshold_volume:
+                num_above_threshold += 1
+        conflict_confidence = float(num_above_threshold) \
+                / float(len(self.conflict_deque_))
+        # print("conflict confidence: %s" % conflict_confidence)
+
+        self.lapse_deque_.append((amplitude, now))
+        while now - self.lapse_deque_[0][1] > self.lapse_tolerance_:
+            self.lapse_deque_.popleft()
+        lapse_threshold_volume = self.samplers_[actions_hash].expectation_ \
+                + math.sqrt(self.samplers_[actions_hash].variance_)
+        num_below_threshold = 0
+        for sample in self.lapse_deque_:
+            if sample[0] < lapse_threshold_volume:
+                num_below_threshold += 1
+        lapse_confidence = float(num_below_threshold) \
+                / float(len(self.lapse_deque_))
+        # print("lapse confidence: %s" % lapse_confidence)
+
+        if lapse_confidence < 0.5:
+            self.last_time_without_lapse_ = now
+
+        if conflict_confidence < 0.5:
+            self.last_time_without_conflict_ = now
+
         # Check if we got a valid most recent value.
         # if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
         #     self.last_update_time_ = now
         # self.holding_ = now - self.last_update_time_ > self.response_delay_
-        if amplitude > \
-                self.samplers_[actions_hash].expectation_ \
-                + math.sqrt(self.samplers_[actions_hash].variance_):
-            self.last_update_time_ = now
-        self.holding_ = now - self.last_update_time_ > self.response_delay_
+
+        if now - self.last_update_time_ < self.response_delay_:
+            return not self.holding_
+
         if self.holding_:
+            # User has the floor.
             self.user_speaking_count_ += 1
-        if not self.holding_ and 'speech' in actions:
-            self.robot_speaking_count_ += 1
+            if now - self.last_time_without_lapse_ > self.lapse_tolerance_:
+                # Lapsed long enough. User yields the floor.
+                self.holding_ = False
+                self.last_update_time_ = now
+        else:
+            # User does not have the floor.
+            if 'speech' in actions:
+                # Robot has the floor.
+                self.robot_speaking_count_ += 1
+                if now - self.last_time_without_conflict_ > \
+                        self.conflict_tolerance_:
+                    # Conflicted long enough. Robot yields the floor.
+                    self.holding_ = True
+                    self.last_known_hold_time_ = now
+            else:
+                # No one has the floor. Check if user is trying to take the
+                # floor.
+                if conflict_confidence > 0.5:
+                    self.holding_ = True
         return not self.holding_
 
     def GetRms_(self, block):
