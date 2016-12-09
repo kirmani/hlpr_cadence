@@ -112,8 +112,8 @@ class FloorListener(ResourceListener):
         #     self.last_update_time_ = now
         # self.holding_ = now - self.last_update_time_ > self.minimum_hold_time_
         self.holding_ = amplitude > \
-                self.samplers_[''].expectation_ \
-                + math.sqrt(self.samplers_[''].variance_)
+                self.samplers_[actions_hash].expectation_ \
+                + math.sqrt(self.samplers_[actions_hash].variance_)
         if self.holding_:
             self.user_speaking_count_ += 1
         if not self.holding_ and 'speech' in actions:
