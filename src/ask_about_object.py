@@ -83,11 +83,7 @@ class AskAboutObject(Action):
 
 		time.sleep(self.wait_time_)
 		ActionProcess('', LookAtObject(self.object_name_)).Run()
-		if self.active_:
-			ActionProcess('',SpeakActively(150, 50,
-          "I know some things about the " + self.object_name_)).Run()
-		else:
-			ActionProcess('',SpeakPassively(150, 50,
+		ActionProcess('', Speak(150, 50,
           "I know some things about the " + self.object_name_)).Run()
 		time.sleep(self.wait_time_)
 
@@ -111,10 +107,7 @@ class AskAboutObject(Action):
 				phrase = "The " + self.object_name_ + pitcher_phrases[random_phrase]
 			elif(self.object_name_ == 'sugar'):
 				phrase = "The " + self.object_name_ + sugar_phrases[random_phrase]
-			if self.active_:
-				ActionProcess('', SpeakActively(150, 50, phrase)).Run()
-			else:
-				ActionProcess('', SpeakPassively(150, 50, phrase)).Run()
+			ActionProcess('', Speak(150, 50, phrase)).Run()
 			time.sleep(self.wait_time_)
 
 		ActionProcess('', LookCenter()).Run()

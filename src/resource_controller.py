@@ -318,7 +318,7 @@ def main():
 	resource_listeners = Set()
 	floor_listener = FloorListener()
 	resource_listeners.add(floor_listener)
-	resource_listeners.add(FloorFactorListener(floor_listener))
+	# resource_listeners.add(FloorFactorListener(floor_listener))
 	resource_listeners.add(ObjectListener('mug'))
 	resource_listeners.add(ObjectListener('banana'))
 	resource_listeners.add(ObjectListener('bowl'))

@@ -36,6 +36,9 @@ class FloorListener(ResourceListener):
         self.user_speaking_count_ = 0
         self.response_delay_ = 1.0
         self.lapse_tolerance_ = 0.5 if self.active_ else 4.0
+        self.floor_factor_ = 2.0 if self.active_ else 0.5
+        self.can_interrupt_user_ = self.active_
+        self.can_interrupt_self_ = not self.active_
         self.lapse_deque_ = deque()
         self.conflict_tolerance_ = 1.0
         self.conflict_deque_ = deque()
@@ -49,6 +52,8 @@ class FloorListener(ResourceListener):
         self.user_time_ = 0.0
         self.volume_factor_ = 0.5
         self.robot_speaking_ = False
+        self.floor_is_free_ = True
+        self.last_yield_time_ = 0.0
 
         # constants
         ResourceListener.__init__(self, 'floor')
@@ -106,7 +111,7 @@ class FloorListener(ResourceListener):
         "Returns True if the floor is free"
         try:
             if self.stream_.get_read_available() < self.input_frames_per_block_:
-                return not self.user_speaking_
+                return self.floor_is_free_
             block = self.stream_.read(self.input_frames_per_block_)
         except IOError, e:
             # Damnit.
@@ -193,14 +198,37 @@ class FloorListener(ResourceListener):
         # print ("user time: %s, robot time: %s"
         #         % (self.user_time_, self.robot_time_))
 
-        if now - self.last_time_without_conflict_ > self.conflict_tolerance_:
-           # Conflicted long enough. Robot can't use floor anymore.
-           return False
+        robot_time = self.robot_time_ if self.robot_speaking_ \
+                else self.robot_time_ + 5.0
+        user_time = self.user_time_ if self.user_time_ > 0.001 else 0.001
+        floor_ratio = robot_time / user_time
+        # print("floor ratio: %s" % floor_ratio)
 
-        if now - self.last_time_without_lapse_ > self.lapse_tolerance_:
-           return True
+        floor_should_be_free = True
+        if floor_ratio > self.floor_factor_:
+            # print("floor ratio not met")
+            floor_should_be_free = False
 
-        return self.robot_speaking_ or not self.user_speaking_
+        if self.can_interrupt_self_:
+            if now - self.last_time_without_conflict_ > self.conflict_tolerance_:
+                # Conflicted long enough. Robot can't use floor anymore.
+                floor_should_be_free = False
+
+        if now - self.last_time_without_lapse_ < self.lapse_tolerance_:
+            floor_should_be_free = False
+
+        if floor_should_be_free:
+            if not self.floor_is_free_:
+                self.last_yield_time_ = now
+            self.floor_is_free_ = True
+        else:
+            if now - self.last_yield_time_ > self.response_delay_:
+                self.floor_is_free_ = False
+        # if self.floor_is_free_:
+        #     print("floor is free")
+        # else:
+        #     print("floor is not free")
+        return self.floor_is_free_
 
         # return not self.user_speaking_
 

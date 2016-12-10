@@ -40,10 +40,7 @@ class Comment(Action):
         ActionProcess('', Nod()).Run()
 
         random_comment = random.randint(0,len(comments) - 1)
-        if self.active_:
-            ActionProcess('', SpeakActively(150, 50, comments[random_comment])).Run()
-        else:
-            ActionProcess('', SpeakPassively(150, 50, comments[random_comment])).Run()
+        ActionProcess('', Speak(150, 50, comments[random_comment])).Run()
         time.sleep(self.wait_time_)
 
         ActionProcess('', Nod()).Run()
