@@ -49,7 +49,7 @@ class DoEE382VExperiment(Action):
 				obj = objects_available[random.randint(0, len(objects_available) - 1)]
 				ask_about_object = AskAboutObject(obj)
 				ask_about_object.OnInterrupt(on_interrupt)
-				self.interrupted = False
+				self.interrupted_ = False
 				ActionProcess('', ask_about_object).Run()
 				if not self.interrupted_:
 					self.objects_.remove(obj)
