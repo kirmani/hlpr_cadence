@@ -154,9 +154,6 @@ class FloorListener(ResourceListener):
         #     self.last_update_time_ = now
         # self.holding_ = now - self.last_update_time_ > self.response_delay_
 
-        if now - self.last_update_time_ < self.response_delay_:
-            return not self.holding_
-
         if self.holding_:
             # User has the floor.
             self.user_speaking_count_ += 1
@@ -164,7 +161,10 @@ class FloorListener(ResourceListener):
                 # Lapsed long enough. User yields the floor.
                 self.holding_ = False
                 self.last_update_time_ = now
+                self.last_time_without_conflict_ = now
         else:
+            if now - self.last_update_time_ < self.response_delay_:
+                return True
             # User does not have the floor.
             if 'speech' in actions:
                 # Robot has the floor.
@@ -173,7 +173,7 @@ class FloorListener(ResourceListener):
                         self.conflict_tolerance_:
                     # Conflicted long enough. Robot yields the floor.
                     self.holding_ = True
-                    self.last_known_hold_time_ = now
+                    self.last_time_without_lapse_ = now
             else:
                 # No one has the floor. Check if user is trying to take the
                 # floor.

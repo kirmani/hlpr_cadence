@@ -21,7 +21,7 @@ class ObjectListener(ResourceListener):
     def __init__(self, object_name):
         ResourceListener.__init__(self, 'object_' + object_name)
         self.object_name_ = object_name
-        self.response_delay_ = 0.1
+        self.response_delay_ = 1.0
         self.last_hold_time_ = 0
         self.holding_ = False
         print("Listening for object: %s" % object_name)
