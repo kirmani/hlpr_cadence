@@ -31,7 +31,7 @@ class FloorListener(ResourceListener):
     def __init__(self):
         self.active_ = rospy.get_param('active', True)
         minimum_block_time = 0.05
-        self.holding_ = False
+        self.user_speaking_ = False
         self.robot_speaking_count_ = 0
         self.user_speaking_count_ = 0
         self.response_delay_ = 1.0
@@ -41,8 +41,14 @@ class FloorListener(ResourceListener):
         self.conflict_deque_ = deque()
         self.last_time_without_lapse_ = 0
         self.last_time_without_conflict_ = 0
-        self.conflict_threshold_ = 0.3
+        self.conflict_threshold_ = 0.9
         self.lapse_threshold_ = 0.5
+        self.user_start_time_ = 0.0
+        self.robot_start_time_ = 0.0
+        self.robot_time_ = 0.0
+        self.user_time_ = 0.0
+        self.volume_factor_ = 0.5
+        self.robot_speaking_ = False
 
         # constants
         ResourceListener.__init__(self, 'floor')
@@ -100,7 +106,7 @@ class FloorListener(ResourceListener):
         "Returns True if the floor is free"
         try:
             if self.stream_.get_read_available() < self.input_frames_per_block_:
-                return not self.holding_
+                return not self.user_speaking_
             block = self.stream_.read(self.input_frames_per_block_)
         except IOError, e:
             # Damnit.
@@ -121,7 +127,8 @@ class FloorListener(ResourceListener):
         while now - self.conflict_deque_[0][1] > self.conflict_tolerance_:
             self.conflict_deque_.popleft()
         conflict_threshold_volume = self.samplers_[actions_hash].expectation_ \
-                + math.sqrt(self.samplers_[actions_hash].variance_)
+                + self.volume_factor_ \
+                * math.sqrt(self.samplers_[actions_hash].variance_)
         num_above_threshold = 0
         for sample in self.conflict_deque_:
             if sample[0] > conflict_threshold_volume:
@@ -134,7 +141,8 @@ class FloorListener(ResourceListener):
         while now - self.lapse_deque_[0][1] > self.lapse_tolerance_:
             self.lapse_deque_.popleft()
         lapse_threshold_volume = self.samplers_[actions_hash].expectation_ \
-                + math.sqrt(self.samplers_[actions_hash].variance_)
+                + self.volume_factor_ \
+                * math.sqrt(self.samplers_[actions_hash].variance_)
         num_below_threshold = 0
         for sample in self.lapse_deque_:
             if sample[0] < lapse_threshold_volume:
@@ -143,43 +151,114 @@ class FloorListener(ResourceListener):
                 / float(len(self.lapse_deque_))
         # print("lapse confidence: %s" % lapse_confidence)
 
-        if lapse_confidence < self.lapse_threshold_:
+        # Determine if robot is speaking.
+        if not self.robot_speaking_ and 'speech' in actions:
+            self.robot_start_time_ = now
+            self.robot_speaking_ = True
+
+        if self.robot_speaking_ and 'speech' not in actions:
+            self.robot_speaking_ = False
+            self.robot_time_ += now - self.robot_start_time_
+
+        # Determine if user is speaking.
+        if not self.robot_speaking_ and not self.user_speaking_:
+            if lapse_confidence < self.lapse_threshold_:
+                self.user_speaking_ = True
+                self.user_start_time_ = now
+
+        if not self.robot_speaking_ and self.user_speaking_:
+            if lapse_confidence > self.lapse_threshold_:
+                self.user_speaking_ = False
+                self.user_time_ += now - self.user_start_time_
+
+        if self.robot_speaking_ and not self.user_speaking_:
+            if conflict_confidence > self.conflict_threshold_:
+                self.user_speaking_ = True
+                self.user_start_time_ = now
+
+        if self.robot_speaking_ and self.user_speaking_:
+            if conflict_confidence < self.conflict_threshold_:
+                self.user_speaking_ = False
+                self.user_time_ += now - self.user_start_time_
+
+        if self.user_speaking_ or self.robot_speaking_:
             self.last_time_without_lapse_ = now
 
-        if conflict_confidence < self.conflict_threshold_:
+        if not (self.user_speaking_ and self.robot_speaking_):
             self.last_time_without_conflict_ = now
+
+        # print ("user speaking: %s, robot speaking: %s"
+        #         % (self.user_speaking_, self.robot_speaking_))
+
+        # print ("user time: %s, robot time: %s"
+        #         % (self.user_time_, self.robot_time_))
+
+        if now - self.last_time_without_conflict_ > self.conflict_tolerance_:
+           # Conflicted long enough. Robot can't use floor anymore.
+           return False
+
+        if now - self.last_time_without_lapse_ > self.lapse_tolerance_:
+           return True
+
+        return self.robot_speaking_ or not self.user_speaking_
+
+        # return not self.user_speaking_
+
+        # return not self.user_speaking_
+        #      self.robot_speaking_ = False
+        #     self.robot_time_ = now - self.start_time_
+        #     self.user_speaking_ = True
+        #     self.start_time_ = now
+        #     self.last_time_without_lapse_ = now
+        #  return True
 
         # Check if we got a valid most recent value.
         # if self.samplers_[actions_hash].IsConfidentValue(amplitude) == 0:
         #     self.last_update_time_ = now
-        # self.holding_ = now - self.last_update_time_ > self.response_delay_
+        # self.user_speaking_ = now - self.last_update_time_ > self.response_delay_
 
-        if self.holding_:
-            # User has the floor.
-            self.user_speaking_count_ += 1
-            if now - self.last_time_without_lapse_ > self.lapse_tolerance_:
-                # Lapsed long enough. User yields the floor.
-                self.holding_ = False
-                self.last_update_time_ = now
-                self.last_time_without_conflict_ = now
-        else:
-            if now - self.last_update_time_ < self.response_delay_:
-                return True
-            # User does not have the floor.
-            if 'speech' in actions:
-                # Robot has the floor.
-                self.robot_speaking_count_ += 1
-                if now - self.last_time_without_conflict_ > \
-                        self.conflict_tolerance_:
-                    # Conflicted long enough. Robot yields the floor.
-                    self.holding_ = True
-                    self.last_time_without_lapse_ = now
-            else:
-                # No one has the floor. Check if user is trying to take the
-                # floor.
-                if conflict_confidence > self.conflict_threshold_:
-                    self.holding_ = True
-        return not self.holding_
+        #user_time = self.user_time_ if self.user_time_ > 0.1 else 0.1
+        # floor_ratio = self.robot_time_ / user_time
+        # print(floor_ratio)
+
+        # if self.user_speaking_:
+        #     # User has the floor.
+        #     self.user_speaking_count_ += 1
+        #     if now - self.last_time_without_lapse_ > self.lapse_tolerance_:
+        #         # Lapsed long enough. User yields the floor.
+        #         self.user_time_ += now - self.start_time_
+        #         self.start_time_ = now
+        #         self.user_speaking_ = False
+        #         self.last_update_time_ = now
+        #         self.last_time_without_conflict_ = now
+        # else:
+        #     if now - self.last_update_time_ < self.response_delay_:
+        #         return True
+        #     # User does not have the floor.
+        #     if 'speech' in actions:
+        #         # Robot has the floor.
+        #         if not self.robot_speaking_:
+        #             self.robot_speaking_ = True
+        #             self.start_time_ = now
+        #         self.robot_speaking_count_ += 1
+        #         if now - self.last_time_without_conflict_ > \
+        #                 self.conflict_tolerance_:
+        #             # Conflicted long enough. Robot yields the floor.
+        #             self.robot_speaking_ = False
+        #             self.robot_time_ = now - self.start_time_
+        #             self.user_speaking_ = True
+        #             self.start_time_ = now
+        #             self.last_time_without_lapse_ = now
+        #     else:
+        #         if self.robot_speaking_:
+        #             self.robot_speaking_ = False
+        #             self.robot_time_ = now - self.start_time_
+        #         # No one has the floor. Check if user is trying to take the
+        #         # floor.
+        #         if conflict_confidence > self.conflict_threshold_:
+        #             self.user_speaking_ = True
+        #             self.start_time_ = now
+        # return not self.user_speaking_
 
     def GetRms_(self, block):
         # We will get one short out for each two chars in the string.
