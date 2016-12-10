@@ -11,6 +11,7 @@
 """
 
 from sets import Set
+from threading import Lock
 
 class PetriNetNode(object):
   def __init__(self, name):
@@ -65,9 +66,11 @@ class PetriNet(object):
     self.name_ = name
     self.transitions_ = []
     self.static_ = False
+    self.lock_ = Lock()
 
   def Run(self):
     # TODO(kirmani): Make all transition nodes fire concurrently.
+    self.lock_.acquire()
     self.static_ = False
     while not self.EndCondition():
       self.static_ = True
@@ -75,6 +78,7 @@ class PetriNet(object):
         if transition.activated():
           transition.fire()
           self.static_ = False
+    self.lock_.release()
 
   def EndCondition(self):
     return self.static_
